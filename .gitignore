@@ -1,0 +1,30 @@
+# R specific
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# URD folder
+URD/
+
+# Data folder contents but keep the folder structure
+data/*
+!data/.gitkeep
+
+# OS specific
+.DS_Store
+.Thumbs.db
+
+# IDE specific
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# R environment specific
+renv/
+.Rprofile
+
+# Temporary files
+*.log
+*.tmp
+*~ 
