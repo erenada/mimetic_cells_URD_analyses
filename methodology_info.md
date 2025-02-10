@@ -182,6 +182,114 @@ Distance Thresholds:
 2. Ester M et al. (1996). "A Density-Based Algorithm for Discovering Clusters in Large Spatial Databases with Noise." KDD-96 Proceedings, 226-231.
 3. Ankerst M et al. (1999). "OPTICS: Ordering Points To Identify the Clustering Structure." ACM SIGMOD Record, 28(2), 49-60.
 
+## 5. Diffusion Map Analysis
+
+### Overview
+Diffusion maps provide a way to analyze the continuous nature of cell differentiation processes in single-cell RNA sequencing data. The method calculates transition probabilities between cells, and the eigendecomposition of these probabilities gives diffusion components that comprise the diffusion map.
+
+### Parameter Selection
+
+#### Key Parameters
+1. **knn (k-nearest neighbors)**:
+   - Controls the local neighborhood size for transition probability calculation
+   - Affects the granularity of the diffusion map
+   - Recommended values:
+     - Small datasets (<10,000 cells): 100-150
+     - Medium datasets (10,000-40,000 cells): 150-200
+     - Large datasets (>40,000 cells): 200+
+
+2. **sigma (Gaussian kernel bandwidth)**:
+   - Controls the width of the Gaussian kernel used in transition probability calculation
+   - Critical for capturing the right scale of cellular transitions
+   - Typical range: 4-10
+   - Optimal value depends on data structure
+
+#### Parameter Optimization Process
+```R
+# Example parameter combinations
+knn_values <- c(100, 150, 200)
+sigma_values <- c(4, 6, 8, 10)
+```
+
+### Selection Criteria
+Look for parameter combinations where:
+1. 1-2 pairs of Diffusion Components (DCs) become very tight
+2. Several more DCs exhibit sharp spikes
+3. Later DCs begin to become blurry
+
+**Visual Guide**:
+```
+Good Parameter Selection:
+DC1-2: Very tight structure
+DC3-6: Sharp, distinct spikes
+DC7+: Gradually becoming more diffuse
+
+Poor Parameter Selection:
+- Too low sigma: All DCs appear noisy
+- Too high sigma: All DCs appear smooth/blurry
+- Wrong knn: Disconnected components or over-connected structure
+```
+
+### Implementation
+The analysis is performed in two steps:
+
+1. **Parameter Exploration**:
+   ```bash
+   sbatch run_diffusion_map_o2.sh
+   ```
+   - Tests multiple parameter combinations
+   - Generates visualization for each combination
+   - Saves results in parameter_exploration.pdf
+
+2. **Final Calculation**:
+   ```bash
+   sbatch run_diffusion_map_o2.sh <knn> <sigma>
+   ```
+   - Runs with chosen optimal parameters
+   - Calculates final diffusion map
+   - Computes transition probabilities
+
+### Resource Requirements
+- Memory: 64GB RAM
+- CPU: 20 cores
+- Time: Up to 4 days for large datasets
+- Storage: ~1GB per parameter combination
+
+### Output Files
+1. **Parameter Exploration**:
+   - `results/plots/diffusion_map/parameter_exploration.pdf`
+   - Visual comparison of different parameter combinations
+
+2. **Final Results**:
+   - `data/urd_object_with_dm_knn{K}_sigma{S}.rds`
+   - `data/urd_object_with_tm_knn{K}_sigma{S}.rds`
+   - `results/plots/diffusion_map/final_diffusion_components.pdf`
+
+### Quality Control
+1. **Visual Inspection**:
+   - Check DC plots for expected patterns
+   - Verify stage separation in diffusion space
+   - Look for smooth transitions between stages
+
+2. **Technical Validation**:
+   - Verify computational stability
+   - Check for batch effects
+   - Assess robustness to parameter changes
+
+### References
+
+1. Haghverdi L, et al. (2016). "Diffusion pseudotime robustly reconstructs lineage branching." Nature Methods, 13(10), 845-848.
+   - *Original diffusion map method for single-cell data*
+
+2. Farrell JA, et al. (2018). "Single-cell reconstruction of developmental trajectories during zebrafish embryogenesis." Science, 360(6392), eaar3131.
+   - *URD implementation and parameter optimization*
+
+3. Angerer P, et al. (2016). "destiny: diffusion maps for large-scale single-cell data in R." Bioinformatics, 32(8), 1241-1243.
+   - *Technical details of diffusion map implementation*
+
+4. Wolf FA, et al. (2019). "PAGA: graph abstraction reconciles clustering with trajectory inference through a topology preserving map of single cells." Genome Biology, 20(1), 59.
+   - *Comparison of different trajectory inference methods*
+
 ## Output and Validation
 
 The analysis produces:
