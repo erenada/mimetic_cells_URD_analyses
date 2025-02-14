@@ -211,27 +211,50 @@ knn_values <- c(100, 150, 200)
 sigma_values <- c(4, 6, 8, 10)
 ```
 
-### Selection Criteria
-Look for parameter combinations where:
-1. 1-2 pairs of Diffusion Components (DCs) become very tight
-2. Several more DCs exhibit sharp spikes
-3. Later DCs begin to become blurry
+### Workflow Steps
 
-**Visual Guide**:
+1. **Diffusion Map Calculation**:
+   - Calculate diffusion map using `calcDM()`
+   - Parameters: knn, sigma, distance metric
+   - Output: Diffusion components in URD object @dm slot
+
+2. **Root Cell Definition**:
+   - Identify cells from earliest developmental stage
+   - These serve as starting points for pseudotime calculation
+   - Critical for accurate trajectory reconstruction
+
+3. **Pseudotime and Transition Probability Calculation**:
+   - Use `floodPseudotime()` function
+   - Calculates both pseudotime and transition probabilities
+   - Parameters:
+     - root.cells: Vector of root cell names
+     - n.cores: Number of cores for parallel processing
+     - minimum.cells: Minimum cells per pseudotime bin
+   - Output:
+     - Pseudotime values in URD object
+     - Transition probabilities between cells
+
+4. **Quality Control**:
+   - Verify pseudotime progression matches biological expectations
+   - Check transition probability distributions
+   - Validate root cell selection impact
+
+### Selection Criteria and Visualization Examples
+
+#### Example Diffusion Component Patterns
+
 ```
-Good Parameter Selection:
-DC1-2: Very tight structure
-DC3-6: Sharp, distinct spikes
-DC7+: Gradually becoming more diffuse
-
-Poor Parameter Selection:
-- Too low sigma: All DCs appear noisy
-- Too high sigma: All DCs appear smooth/blurry
-- Wrong knn: Disconnected components or over-connected structure
+DC1  ▁▁▂▃▅▇█▇▅▃▂▁▁   Good: Sharp, distinct peaks
+DC2  ▁▂▅▇█▇▅▂▁▁▁▁   Good: Clear structure
+DC3  ▁▁▂▅▇█▇▅▂▁▁▁   Good: Well-defined transitions
+DC4  ▁▂▃▅▆▇▆▅▃▂▁▁   Good: Gradual changes
+DC5  ▁▂▃▄▅▆▅▄▃▂▁▁   Good: Smooth progression
+DC6  ▁▁▂▃▄▃▂▁▁▁▁▁   Starting to blur
+DC7  ▁▂▂▃▂▂▁▁▁▁▁▁   Becoming diffuse
+DC8  ▁▁▂▁▂▁▁▁▁▁▁▁   Noise dominant
 ```
 
 ### Implementation
-The analysis is performed in two steps:
 
 1. **Parameter Exploration**:
    ```bash
@@ -247,7 +270,7 @@ The analysis is performed in two steps:
    ```
    - Runs with chosen optimal parameters
    - Calculates final diffusion map
-   - Computes transition probabilities
+   - Prepares for pseudotime calculation
 
 ### Resource Requirements
 - Memory: 64GB RAM
@@ -262,7 +285,6 @@ The analysis is performed in two steps:
 
 2. **Final Results**:
    - `data/urd_object_with_dm_knn{K}_sigma{S}.rds`
-   - `data/urd_object_with_tm_knn{K}_sigma{S}.rds`
    - `results/plots/diffusion_map/final_diffusion_components.pdf`
 
 ### Quality Control

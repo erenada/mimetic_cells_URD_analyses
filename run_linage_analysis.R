@@ -5,6 +5,17 @@ suppressPackageStartupMessages({
   library(MASS)  # Required for fitdistr
 })
 
+# Function to safely handle PDF creation
+safe_pdf <- function(filename, expr) {
+  pdf(filename)
+  tryCatch(
+    expr,
+    finally = {
+      while (dev.cur() > 1) dev.off()
+    }
+  )
+}
+
 # load the URD object
 urd_object <- readRDS("data/initial_urd_object_20250210_1206.rds")
 
@@ -47,42 +58,39 @@ message("Processing stages and calculating variable genes...")
 cells.each.stage <- list()
 var.genes.by.stage <- list()
 
-# Set up PDF for all plots
-pdf("results/plots/variable_genes_by_stage.pdf")
-
-for(stage in stages) {
-  message(sprintf("\nProcessing stage: %s", stage))
-  
-  # Get and filter cells for this stage
-  stage_cells <- rownames(urd_object@group.ids)[which(urd_object@group.ids$stage == stage)]
-  result <- filterCells(urd_object, stage_cells, min_counts = 100, min_genes = 50)
-  cells.each.stage[[stage]] <- result$cells
-  
-  message(sprintf("Cells: %d (after filtering)", length(result$cells)))
-  
-  # Calculate variable genes
-  var.genes <- findVariableGenes(urd_object, 
-                               cells.fit = result$cells, 
-                               set.object.var.genes = FALSE, 
-                               diffCV.cutoff = 0.3,  
-                               mean.min = 0.1,      
-                               mean.max = 100,      
-                               main.use = stage,
-                               do.plot = TRUE)
-  
-  var.genes.by.stage[[stage]] <- var.genes
-  message(sprintf("Variable genes found: %d", length(var.genes)))
-  
-  # Save variable genes for this stage
-  write.table(var.genes, 
-              file = sprintf("results/variable_genes/%s_var_genes.txt", stage),
-              row.names = FALSE, 
-              col.names = FALSE, 
-              quote = FALSE)
-}
-
-# Close the PDF device
-dev.off()
+# Calculate variable genes for each stage
+safe_pdf("results/plots/variable_genes_by_stage.pdf", {
+  for(stage in stages) {
+    message(sprintf("\nProcessing stage: %s", stage))
+    
+    # Get and filter cells for this stage
+    stage_cells <- rownames(urd_object@group.ids)[which(urd_object@group.ids$stage == stage)]
+    result <- filterCells(urd_object, stage_cells, min_counts = 100, min_genes = 50)
+    cells.each.stage[[stage]] <- result$cells
+    
+    message(sprintf("Cells: %d (after filtering)", length(result$cells)))
+    
+    # Calculate variable genes
+    var.genes <- findVariableGenes(urd_object, 
+                                 cells.fit = result$cells, 
+                                 set.object.var.genes = FALSE, 
+                                 diffCV.cutoff = 0.3,  
+                                 mean.min = 0.1,      
+                                 mean.max = 100,      
+                                 main.use = stage,
+                                 do.plot = TRUE)
+    
+    var.genes.by.stage[[stage]] <- var.genes
+    message(sprintf("Variable genes found: %d", length(var.genes)))
+    
+    # Save variable genes for this stage
+    write.table(var.genes, 
+                file = sprintf("results/variable_genes/%s_var_genes.txt", stage),
+                row.names = FALSE, 
+                col.names = FALSE, 
+                quote = FALSE)
+  }
+})
 
 # Combine variable genes from all stages
 var.genes <- sort(unique(unlist(var.genes.by.stage)))
@@ -112,6 +120,6 @@ write.csv(var_genes_stats,
           file = "results/variable_genes/variable_genes_statistics.csv",
           row.names = FALSE)
 
-# Overwrite the original URD object
-saveRDS(urd_object, "data/initial_urd_object_20250210_1206.rds")
+# Save the updated URD object
+saveRDS(urd_object, "data/initial_urd_object_with_var_genes.rds")
 message("\nURD object updated with variable genes")

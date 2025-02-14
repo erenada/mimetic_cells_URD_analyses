@@ -16,11 +16,19 @@ safe_pdf <- function(filename, expr) {
   )
 }
 
-# Load the URD object with variable genes
-urd_object <- readRDS("data/initial_urd_object_20250210_1206.rds")
+# Find the most recent test URD object
+test_files <- list.files("test_data", pattern = "test_urd_object_.*_with_var_genes\\.rds$", full.names = TRUE)
+if (length(test_files) == 0) {
+  stop("No test URD object with variable genes found. Please run run_test_linage_analysis.R first.")
+}
+latest_test_file <- test_files[which.max(file.info(test_files)$mtime)]
+
+# Load the test URD object
+message(sprintf("Loading test URD object from: %s", latest_test_file))
+urd_object <- readRDS(latest_test_file)
 
 # Create output directories
-dir.create("results/plots/dimensionality_reduction", recursive = TRUE, showWarnings = FALSE)
+dir.create("test_results/plots/dimensionality_reduction", recursive = TRUE, showWarnings = FALSE)
 
 message("Starting dimensionality reduction analysis...")
 
@@ -38,11 +46,11 @@ message(sprintf("Number of variable genes: %d", length(urd_object@var.genes)))
 # 1. PCA Parameters
 # -----------------------------
 message("\n1. PCA Analysis")
-# Try different mp.factor values
-mp_factors <- c(1.5, 2, 2.5)
+# Try different mp.factor values (adjusted for smaller dataset)
+mp_factors <- c(1.5, 2)
 pca_results <- list()
 
-safe_pdf("results/plots/dimensionality_reduction/pca_parameter_selection.pdf", {
+safe_pdf("test_results/plots/dimensionality_reduction/pca_parameter_selection.pdf", {
   for(mp in mp_factors) {
     urd_object <- calcPCA(urd_object, mp.factor = mp)
     pca_results[[as.character(mp)]] <- length(urd_object@pca.sig)
@@ -65,10 +73,9 @@ n_sig_pcs <- length(urd_object@pca.sig)
 # 2. tSNE Parameters
 # -----------------------------
 message("\n2. tSNE Analysis")
-# Calculate perplexity based on dataset size
-# Rule of thumb: perplexity should be between 5 and sqrt(n_cells)/3
+# Calculate perplexity based on dataset size (adjusted for smaller dataset)
 min_perp <- 5
-max_perp <- min(50, floor(sqrt(n_cells)/3))
+max_perp <- min(30, floor(sqrt(n_cells)/3))
 perplexity_values <- unique(round(c(
     min_perp,
     floor(max_perp/2),
@@ -77,7 +84,7 @@ perplexity_values <- unique(round(c(
 
 message(sprintf("Testing perplexity values: %s", paste(perplexity_values, collapse=", ")))
 
-safe_pdf("results/plots/dimensionality_reduction/tsne_parameter_selection.pdf", {
+safe_pdf("test_results/plots/dimensionality_reduction/tsne_parameter_selection.pdf", {
   for(perp in perplexity_values) {
     message(sprintf("Computing tSNE with perplexity %d...", perp))
     set.seed(123)
@@ -100,36 +107,35 @@ urd_object <- calcTsne(urd_object, perplexity = max(perplexity_values), theta = 
 # -----------------------------
 message("\n3. Graph-based Clustering")
 
-# Calculate dataset complexity metrics
+# Calculate dataset complexity metrics (adjusted for smaller dataset)
 n_stages <- length(unique(urd_object@group.ids$stage))
 cells_per_stage <- table(urd_object@group.ids$stage)
 min_cells_per_stage <- min(cells_per_stage)
-complexity_factor <- n_stages / log2(n_cells)  # Higher for more complex datasets
+complexity_factor <- n_stages / log2(n_cells)
 
 message("\nDataset complexity metrics:")
 message(sprintf("Number of stages: %d", n_stages))
 message(sprintf("Minimum cells per stage: %d", min_cells_per_stage))
 message(sprintf("Complexity factor: %.2f", complexity_factor))
 
-# Calculate number of nearest neighbors based on dataset size AND complexity
-base_min_nn <- ceiling(sqrt(n_cells)/2)
-base_max_nn <- ceiling(sqrt(n_cells))
+# Calculate number of nearest neighbors (adjusted for smaller dataset)
+base_min_nn <- ceiling(sqrt(n_cells)/3)  # Reduced from /2 for smaller dataset
+base_max_nn <- ceiling(sqrt(n_cells)/2)  # Reduced from sqrt(n_cells) for smaller dataset
 
-# Adjust nn based on complexity:
-# - For more complex data (many stages relative to cells), use fewer neighbors
-# - For simpler data (few stages relative to cells), use more neighbors
+# Adjust nn based on complexity
 complexity_adjustment <- 1 / (1 + log2(complexity_factor))
-min_nn <- ceiling(base_min_nn * complexity_adjustment)
-max_nn <- ceiling(base_max_nn * complexity_adjustment)
+min_nn <- as.integer(ceiling(base_min_nn * complexity_adjustment))
+max_nn <- as.integer(ceiling(base_max_nn * complexity_adjustment))
 
 # Ensure minimum reasonable values
-min_nn <- max(min_nn, 10)  # Never go below 10 neighbors
-max_nn <- max(max_nn, min_nn * 1.5)  # Ensure reasonable range
+min_nn <- as.integer(max(min_nn, 5))  # Reduced from 10 for smaller dataset
+max_nn <- as.integer(max(max_nn, min_nn * 1.5))
 
-nn_values <- unique(round(c(min_nn, (min_nn + max_nn)/2, max_nn)))
+# Convert to integer for unique and round operations
+nn_values <- as.integer(unique(round(c(min_nn, (min_nn + max_nn)/2, max_nn))))
 
 message("\nNearest neighbor selection:")
-message(sprintf("Base range (from sqrt rule): %d-%d", base_min_nn, base_max_nn))
+message(sprintf("Base range (from sqrt rule): %d-%d", as.integer(base_min_nn), as.integer(base_max_nn)))
 message(sprintf("Complexity adjustment factor: %.2f", complexity_adjustment))
 message(sprintf("Final adjusted range: %d-%d", min_nn, max_nn))
 message(sprintf("Testing nearest neighbor values: %s", paste(nn_values, collapse=", ")))
@@ -142,7 +148,7 @@ urd_object <- graphClustering(urd_object,
                            method = "Louvain")
 
 # Plot clustering results
-safe_pdf("results/plots/dimensionality_reduction/clustering_parameter_selection.pdf", {
+safe_pdf("test_results/plots/dimensionality_reduction/clustering_parameter_selection.pdf", {
   for(nn in nn_values) {
     # Plot on PCA
     plotDim(urd_object, 
@@ -163,34 +169,28 @@ safe_pdf("results/plots/dimensionality_reduction/clustering_parameter_selection.
 # 4. kNN and Outlier Detection
 # -----------------------------
 message("\n4. kNN and Outlier Detection")
-# Calculate optimal kNN value based on dataset size
-if(n_cells < 1000) {
-    nn_value <- ceiling(sqrt(n_cells))
-} else if(n_cells < 10000) {
-    nn_value <- ceiling(sqrt(n_cells)/2)
-} else {
-    nn_value <- 100
-}
+# Calculate optimal kNN value (adjusted for smaller dataset)
+nn_value <- as.integer(ceiling(sqrt(n_cells)/2))  # Reduced from original calculation
 
 message(sprintf("\nChosen parameters for kNN:"))
 message(sprintf("nn_value: %d (based on dataset size)", nn_value))
-message(sprintf("nn.2: %d (1/5 of nn_value)", round(nn_value/5)))
+message(sprintf("nn.2: %d (1/5 of nn_value)", as.integer(round(nn_value/5))))
 
-# Try different nn values around the chosen value
-nn_values <- unique(round(c(nn_value * 0.5, nn_value, nn_value * 1.5)))
+# Try different nn values
+nn_values <- as.integer(unique(round(c(nn_value * 0.5, nn_value, nn_value * 1.5))))
 
-safe_pdf("results/plots/dimensionality_reduction/knn_parameter_selection.pdf", {
+safe_pdf("test_results/plots/dimensionality_reduction/knn_parameter_selection.pdf", {
   outliers_per_nn <- list()
   for(nn in nn_values) {
     urd_object <- calcKNN(urd_object, nn = nn)
     outliers <- knnOutliers(urd_object, 
                           nn.1 = 1,
-                          nn.2 = round(nn/5),
-                          x.max = 40,
-                          slope.r = 1.1,
-                          int.r = 2.9,
-                          slope.b = 0.85,
-                          int.b = 10,
+                          nn.2 = as.integer(round(nn/5)),
+                          x.max = 40,        # Original value
+                          slope.r = 1.1,     # Original value
+                          int.r = 2.9,       # Original value
+                          slope.b = 0.85,    # Original value
+                          int.b = 10,        # Original value
                           title = sprintf("Outliers (nn=%d)", nn))
     outliers_per_nn[[as.character(nn)]] <- outliers
   }
@@ -208,17 +208,17 @@ for(nn in names(outliers_per_nn)) {
 urd_object <- calcKNN(urd_object, nn = nn_value)
 outliers <- knnOutliers(urd_object, 
                       nn.1 = 1,
-                      nn.2 = round(nn_value/5),
-                      x.max = 40,
-                      slope.r = 1.1,
-                      int.r = 2.9,
-                      slope.b = 0.85,
-                      int.b = 10,
+                      nn.2 = as.integer(round(nn_value/5)),
+                      x.max = 40,        # Original value
+                      slope.r = 1.1,     # Original value
+                      int.r = 2.9,       # Original value
+                      slope.b = 0.85,    # Original value
+                      int.b = 10,        # Original value
                       title = "Final Outlier Detection")
 
 # Save outlier information
 write.table(outliers, 
-           file = "results/outlier_cells.txt", 
+           file = "test_results/outlier_cells.txt", 
            row.names = FALSE, 
            col.names = FALSE, 
            quote = FALSE)
@@ -231,8 +231,8 @@ cells.keep <- setdiff(colnames(urd_object@logupx.data), outliers)
 urd_object_clean <- urdSubset(urd_object, cells.keep = cells.keep)
 
 # Save results
-saveRDS(urd_object, "data/urd_object_with_dimred.rds")
-saveRDS(urd_object_clean, "data/urd_object_clean.rds")
+saveRDS(urd_object, "test_data/test_urd_object_with_dimred.rds")
+saveRDS(urd_object_clean, "test_data/test_urd_object_clean.rds")
 
 # Save parameter choices
 parameter_summary <- data.frame(
@@ -250,9 +250,9 @@ parameter_summary <- data.frame(
              sprintf("%.1f%%", 100 * length(outliers) / n_cells))
 )
 write.csv(parameter_summary, 
-          "results/parameter_summary.csv", 
+          "test_results/parameter_summary.csv", 
           row.names = FALSE, 
           quote = FALSE)
 
-message("\nAnalysis complete!")
-message("Parameter summary saved to 'results/parameter_summary.csv'") 
+message("\nTest analysis complete!")
+message("Parameter summary saved to 'test_results/parameter_summary.csv'") 

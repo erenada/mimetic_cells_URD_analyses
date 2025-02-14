@@ -28,3 +28,12 @@ renv/
 *.log
 *.tmp
 *~ 
+
+# Test related
+test_data/
+test_results/
+Rplots.pdf
+
+# Generated plots and results
+results/plots/**/*.pdf
+results/plots/**/*.png 
