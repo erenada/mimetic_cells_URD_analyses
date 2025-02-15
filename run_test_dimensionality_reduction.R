@@ -5,17 +5,6 @@ suppressPackageStartupMessages({
   library(RColorBrewer)
 })
 
-# Function to safely handle PDF creation
-safe_pdf <- function(filename, expr) {
-  pdf(filename)
-  tryCatch(
-    expr,
-    finally = {
-      while (dev.cur() > 1) dev.off()
-    }
-  )
-}
-
 # Find the most recent test URD object
 test_files <- list.files("test_data", pattern = "test_urd_object_.*_with_var_genes\\.rds$", full.names = TRUE)
 if (length(test_files) == 0) {
@@ -50,14 +39,14 @@ message("\n1. PCA Analysis")
 mp_factors <- c(1.5, 2)
 pca_results <- list()
 
-safe_pdf("test_results/plots/dimensionality_reduction/pca_parameter_selection.pdf", {
-  for(mp in mp_factors) {
-    urd_object <- calcPCA(urd_object, mp.factor = mp)
-    pca_results[[as.character(mp)]] <- length(urd_object@pca.sig)
-    pcSDPlot(urd_object)
-    title(main = sprintf("mp.factor = %.1f", mp))
-  }
-})
+pdf("test_results/plots/dimensionality_reduction/pca_parameter_selection.pdf")
+for(mp in mp_factors) {
+  urd_object <- calcPCA(urd_object, mp.factor = mp)
+  pca_results[[as.character(mp)]] <- length(urd_object@pca.sig)
+  pcSDPlot(urd_object)
+  title(main = sprintf("mp.factor = %.1f", mp))
+}
+dev.off()
 
 # Choose optimal mp.factor
 message("\nPCA significant components with different mp.factor values:")
@@ -84,20 +73,20 @@ perplexity_values <- unique(round(c(
 
 message(sprintf("Testing perplexity values: %s", paste(perplexity_values, collapse=", ")))
 
-safe_pdf("test_results/plots/dimensionality_reduction/tsne_parameter_selection.pdf", {
-  for(perp in perplexity_values) {
-    message(sprintf("Computing tSNE with perplexity %d...", perp))
-    set.seed(123)
-    urd_object <- calcTsne(urd_object, perplexity = perp, theta = 0.5)
-    
-    # Plot stages
-    plotDim(urd_object, 
-            "stage",
-            reduction.use = "tsne",
-            plot.title = sprintf("tSNE of Stages (perplexity=%d)", perp),
-            legend = TRUE)
-  }
-})
+pdf("test_results/plots/dimensionality_reduction/tsne_parameter_selection.pdf")
+for(perp in perplexity_values) {
+  message(sprintf("Computing tSNE with perplexity %d...", perp))
+  set.seed(123)
+  urd_object <- calcTsne(urd_object, perplexity = perp, theta = 0.5)
+  
+  # Plot stages
+  plotDim(urd_object, 
+          "stage",
+          reduction.use = "tsne",
+          plot.title = sprintf("tSNE of Stages (perplexity=%d)", perp),
+          legend = TRUE)
+}
+dev.off()
 
 # Store the last tSNE result (highest perplexity) for downstream analysis
 set.seed(123)
@@ -148,23 +137,23 @@ urd_object <- graphClustering(urd_object,
                            method = "Louvain")
 
 # Plot clustering results
-safe_pdf("test_results/plots/dimensionality_reduction/clustering_parameter_selection.pdf", {
-  for(nn in nn_values) {
-    # Plot on PCA
-    plotDim(urd_object, 
-            sprintf("Louvain-%d", nn), 
-            reduction.use = "pca",
-            legend = TRUE,
-            plot.title = sprintf("Louvain-Jaccard Clustering on PCA (%d NNs)", nn))
-    
-    # Plot on tSNE
-    plotDim(urd_object, 
-            sprintf("Louvain-%d", nn), 
-            reduction.use = "tsne",
-            legend = TRUE,
-            plot.title = sprintf("Louvain-Jaccard Clustering on tSNE (%d NNs)", nn))
-  }
-})
+pdf("test_results/plots/dimensionality_reduction/clustering_parameter_selection.pdf")
+for(nn in nn_values) {
+  # Plot on PCA
+  plotDim(urd_object, 
+          sprintf("Louvain-%d", nn), 
+          reduction.use = "pca",
+          legend = TRUE,
+          plot.title = sprintf("Louvain-Jaccard Clustering on PCA (%d NNs)", nn))
+  
+  # Plot on tSNE
+  plotDim(urd_object, 
+          sprintf("Louvain-%d", nn), 
+          reduction.use = "tsne",
+          legend = TRUE,
+          plot.title = sprintf("Louvain-Jaccard Clustering on tSNE (%d NNs)", nn))
+}
+dev.off()
 
 # 4. kNN and Outlier Detection
 # -----------------------------
@@ -179,22 +168,22 @@ message(sprintf("nn.2: %d (1/5 of nn_value)", as.integer(round(nn_value/5))))
 # Try different nn values
 nn_values <- as.integer(unique(round(c(nn_value * 0.5, nn_value, nn_value * 1.5))))
 
-safe_pdf("test_results/plots/dimensionality_reduction/knn_parameter_selection.pdf", {
-  outliers_per_nn <- list()
-  for(nn in nn_values) {
-    urd_object <- calcKNN(urd_object, nn = nn)
-    outliers <- knnOutliers(urd_object, 
-                          nn.1 = 1,
-                          nn.2 = as.integer(round(nn/5)),
-                          x.max = 40,        # Original value
-                          slope.r = 1.1,     # Original value
-                          int.r = 2.9,       # Original value
-                          slope.b = 0.85,    # Original value
-                          int.b = 10,        # Original value
-                          title = sprintf("Outliers (nn=%d)", nn))
-    outliers_per_nn[[as.character(nn)]] <- outliers
-  }
-})
+pdf("test_results/plots/dimensionality_reduction/knn_parameter_selection.pdf")
+outliers_per_nn <- list()
+for(nn in nn_values) {
+  urd_object <- calcKNN(urd_object, nn = nn)
+  outliers <- knnOutliers(urd_object, 
+                        nn.1 = 1,
+                        nn.2 = as.integer(round(nn/5)),
+                        x.max = 40,        # Original value
+                        slope.r = 1.1,     # Original value
+                        int.r = 2.9,       # Original value
+                        slope.b = 0.85,    # Original value
+                        int.b = 10,        # Original value
+                        title = sprintf("Outliers (nn=%d)", nn))
+  outliers_per_nn[[as.character(nn)]] <- outliers
+}
+dev.off()
 
 # Compare results
 message("\nOutlier detection results with different nn values:")

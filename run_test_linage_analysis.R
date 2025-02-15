@@ -55,9 +55,8 @@ message("Processing stages and calculating variable genes...")
 cells.each.stage <- list()
 var.genes.by.stage <- list()
 
-# Set up PDF for all plots
+# Calculate variable genes for each stage
 pdf("test_results/plots/variable_genes_by_stage.pdf")
-
 for(stage in stages) {
   message(sprintf("\nProcessing stage: %s", stage))
   
@@ -88,8 +87,6 @@ for(stage in stages) {
               col.names = FALSE, 
               quote = FALSE)
 }
-
-# Close the PDF device
 dev.off()
 
 # Combine variable genes from all stages
