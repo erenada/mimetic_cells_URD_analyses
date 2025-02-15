@@ -4,7 +4,7 @@ suppressPackageStartupMessages({
   library(Seurat)
   library(RColorBrewer)
 })
-dev.off()
+
 # Load the URD object with variable genes
 urd_object <- readRDS("data/initial_urd_object_20250210_1206.rds")
 
