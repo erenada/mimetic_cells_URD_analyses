@@ -155,27 +155,104 @@ graph LR
       nn_value <- 100
   }
   ```
-- **Secondary parameters**:
-  - nn.2 = nn_value/5 (scales with primary neighbor count)
-  - Testing range: 0.5x to 1.5x the chosen value
+- **Rationale for tiered approach**:
+  1. Small datasets (< 1,000 cells):
+     - Uses square root rule for optimal local neighborhood representation
+     - Example: 900 cells → ~30 neighbors
+  2. Medium datasets (1,000-10,000 cells):
+     - Uses half square root to prevent over-connectivity
+     - Example: 9,000 cells → ~47 neighbors
+  3. Large datasets (> 10,000 cells):
+     - Fixed value of 100 neighbors
+     - Balances:
+       - Local structure capture
+       - Computational efficiency
+       - Biological resolution
+     - Prevents excessive connectivity in very large datasets
+     - Aligned with field best practices (e.g., Seurat, Scanpy defaults)
+
+**Parameter Scaling Visualization**:
+```
+Dataset Size (N)  |  Formula           |  Typical Value
+     500         |  sqrt(N)           |     ~22
+    5,000        |  sqrt(N)/2         |     ~35
+   50,000        |  100 (fixed)       |     100
+  500,000        |  100 (fixed)       |     100
+```
+
+**Computational Considerations**:
+- Memory usage scales with O(n * k) where:
+  - n = number of cells
+  - k = number of neighbors
+- Large k values can significantly impact:
+  - Memory requirements
+  - Computation time
+  - Graph density
+
+**Secondary Parameters**:
+- nn.2 (secondary neighbor count):
+  - Set to nn_value/3
+  - Rationale: Provides finer-grained local structure assessment
+  - Used in outlier detection to compare local vs extended neighborhood distances
+- Distance metrics:
+  - Primary: Euclidean distance in PCA space
+  - Calculated for both nn.1 (1st neighbor) and nn.2 neighbors
+  - x.max: 95th percentile of distances (data-driven threshold)
 
 ### Outlier Detection Parameters
+
+#### x.max Selection (Data-Driven Approach)
+- **Purpose**: Determines the maximum distance threshold for outlier detection
+- **Calculation**:
+  ```R
+  # Calculate distance distribution from kNN
+  dist_matrix <- urd_object@knn$nn.dists
+  all_distances <- as.vector(dist_matrix)
+  x_max_value <- quantile(all_distances, 0.95)  # 95th percentile
+  ```
+- **Rationale**:
+  - Data-driven approach ensures x.max is appropriate for the specific dataset
+  - 95th percentile captures the majority of legitimate cell-cell distances
+  - Automatically adjusts to different data scales and distributions
+  - More robust than fixed value across different datasets
+
+#### Other Parameters
 - Fixed parameters based on URD recommendations:
-  - x.max = 40 (maximum x-axis value)
-  - slope.r = 1.1 (slope of red line)
-  - int.r = 2.9 (intercept of red line)
-  - slope.b = 0.85 (slope of blue line)
-  - int.b = 10 (intercept of blue line)
+  - slope.r and int.r: Define the upper bound line (y = slope.r * x + int.r)
+  - slope.b and int.b: Define the lower bound line (y = slope.b * x + int.b)
+  - Three parameter sets tested:
+    1. Conservative: slope.r = 1.1, int.r = 2.9, slope.b = 0.85, int.b = 10
+    2. Moderate: slope.r = 1.2, int.r = 3.5, slope.b = 0.9, int.b = 8
+    3. Lenient: slope.r = 1.3, int.r = 4.0, slope.b = 0.95, int.b = 6
+
+**Distance Distribution Analysis**:
+```
+Key Statistics Tracked:
+- Minimum distance
+- Median distance
+- 95th percentile (x.max)
+- Maximum distance
+
+This provides context for the chosen x.max value and
+helps validate the outlier detection parameters.
+```
 
 **Outlier Detection Visualization**:
 ```
 Distance Thresholds:
-    Red Line: y = 1.1x + 2.9  (Upper bound)
-    Blue Line: y = 0.85x + 10 (Lower bound)
+    Red Line: y = slope.r * x + int.r  (Upper bound)
+    Blue Line: y = slope.b * x + int.b (Lower bound)
     
-    x: Distance to 1st neighbor
+    x: Distance to 1st neighbor (limited by x.max)
     y: Distance to nth neighbor
 ```
+
+**Parameter Selection Process**:
+1. Calculate optimal kNN value based on dataset size
+2. Compute kNN distance matrix
+3. Determine x.max from distance distribution
+4. Test multiple parameter combinations
+5. Select best parameters based on outlier percentage (1-10% target range)
 
 **Key References**:
 1. Farrell JA et al. (2018). "Single-cell reconstruction of developmental trajectories during zebrafish embryogenesis." Science, 360(6392), eaar3131.

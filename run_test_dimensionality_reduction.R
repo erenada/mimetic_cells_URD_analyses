@@ -39,14 +39,17 @@ message("\n1. PCA Analysis")
 mp_factors <- c(2, 3, 4)  # Matching main script
 pca_results <- list()
 
-pdf("test_results/plots/dimensionality_reduction/pca_parameter_selection.pdf")
+# Create directory for individual plots
+dir.create("test_results/plots/dimensionality_reduction/pca", recursive = TRUE, showWarnings = FALSE)
 for(mp in mp_factors) {
+  png(sprintf("test_results/plots/dimensionality_reduction/pca/pca_mp%.1f.png", mp),
+      width = 800, height = 600, res = 100)
   urd_object <- calcPCA(urd_object, mp.factor = mp)
   pca_results[[as.character(mp)]] <- length(urd_object@pca.sig)
   pcSDPlot(urd_object)
   title(main = sprintf("mp.factor = %.1f", mp))
+  dev.off()
 }
-dev.off()
 
 # Choose optimal mp.factor
 message("\nPCA significant components with different mp.factor values:")
@@ -73,24 +76,64 @@ perplexity_values <- unique(round(c(
 
 message(sprintf("Testing perplexity values: %s", paste(perplexity_values, collapse=", ")))
 
-pdf("test_results/plots/dimensionality_reduction/tsne_parameter_selection.pdf")
+# Create directory for tSNE plots
+dir.create("test_results/plots/dimensionality_reduction/tsne", recursive = TRUE, showWarnings = FALSE)
+
 for(perp in perplexity_values) {
   message(sprintf("Computing tSNE with perplexity %d...", perp))
   set.seed(123)
+  # Calculate tSNE
   urd_object <- calcTsne(urd_object, perplexity = perp, theta = 0.5)
   
-  # Plot stages
-  plotDim(urd_object, 
-          "stage",
-          reduction.use = "tsne",
-          plot.title = sprintf("tSNE of Stages (perplexity=%d)", perp),
-          legend = TRUE)
+  # Verify tSNE calculation completed
+  if(!is.null(urd_object@tsne.y)) {
+    tryCatch({
+      # Create the plot file
+      png_file <- sprintf("test_results/plots/dimensionality_reduction/tsne/tsne_perp%d.png", perp)
+      message(sprintf("Creating plot: %s", png_file))
+      
+      # Open PNG device
+      png(png_file, width = 800, height = 600, res = 100)
+      
+      # Create plot
+      plotDim(urd_object, 
+              label = "stage",
+              reduction.use = "tsne",
+              plot.title = "Stage Distribution",
+              legend = TRUE)
+      
+      # Explicitly close the device
+      dev.off()
+      
+      # Force garbage collection
+      gc()
+      
+      # Verify file was created
+      if(file.exists(png_file)) {
+        message(sprintf("Successfully created plot for perplexity %d", perp))
+      } else {
+        message(sprintf("Warning: Failed to create plot for perplexity %d", perp))
+      }
+    }, error = function(e) {
+      message(sprintf("Error creating plot for perplexity %d: %s", perp, e$message))
+      if (dev.cur() > 1) dev.off()  # Close device if open
+    })
+  } else {
+    message(sprintf("Warning: tSNE calculation failed for perplexity %d", perp))
+  }
 }
-dev.off()
+
+# Force garbage collection
+gc()
 
 # Store the last tSNE result (highest perplexity) for downstream analysis
 set.seed(123)
 urd_object <- calcTsne(urd_object, perplexity = max(perplexity_values), theta = 0.5)
+
+# Verify final tSNE calculation
+if(is.null(urd_object@tsne.y)) {
+  stop("Final tSNE calculation failed")
+}
 
 # 3. Clustering Parameters
 # -----------------------------
@@ -129,31 +172,28 @@ message(sprintf("Complexity adjustment factor: %.2f", complexity_adjustment))
 message(sprintf("Final adjusted range: %d-%d", min_nn, max_nn))
 message(sprintf("Testing nearest neighbor values: %s", paste(nn_values, collapse=", ")))
 
-set.seed(123)
-urd_object <- graphClustering(urd_object, 
-                           dim.use = "pca", 
-                           num.nn = nn_values,
-                           do.jaccard = TRUE, 
-                           method = "Louvain")
-
-# Plot clustering results
-pdf("test_results/plots/dimensionality_reduction/clustering_parameter_selection.pdf")
+# Calculate clustering for each nn value separately
 for(nn in nn_values) {
-  # Plot on PCA
-  plotDim(urd_object, 
-          sprintf("Louvain-%d", nn), 
-          reduction.use = "pca",
-          legend = TRUE,
-          plot.title = sprintf("Louvain-Jaccard Clustering on PCA (%d NNs)", nn))
+  message(sprintf("\nCalculating clustering with %d nearest neighbors...", nn))
+  set.seed(123)
+  # Calculate clustering for this nn value
+  urd_object <- graphClustering(urd_object, 
+                             dim.use = "pca", 
+                             num.nn = nn,
+                             do.jaccard = TRUE, 
+                             method = "Louvain")
   
-  # Plot on tSNE
-  plotDim(urd_object, 
-          sprintf("Louvain-%d", nn), 
-          reduction.use = "tsne",
-          legend = TRUE,
-          plot.title = sprintf("Louvain-Jaccard Clustering on tSNE (%d NNs)", nn))
+  # Verify clustering was successful
+  cluster_name <- sprintf("Louvain-%d", nn)
+  if(!is.null(urd_object@group.ids[[cluster_name]])) {
+    message(sprintf("Successfully calculated clusters for nn=%d", nn))
+  } else {
+    message(sprintf("Warning: Clustering failed for nn=%d", nn))
+  }
 }
-dev.off()
+
+# Force garbage collection
+gc()
 
 # 4. kNN and Outlier Detection
 # -----------------------------
@@ -193,20 +233,24 @@ parameter_combinations <- list(
     list(slope.r = 1.3, int.r = 4.0, slope.b = 0.95, int.b = 6)    # Most lenient
 )
 
-pdf("test_results/plots/dimensionality_reduction/outlier_parameter_selection.pdf")
+# Create directory for outlier plots
+dir.create("test_results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
 outliers_results <- list()
 for(i in seq_along(parameter_combinations)) {
     params <- parameter_combinations[[i]]
     
+    png(sprintf("test_results/plots/dimensionality_reduction/outliers/outliers_set%d.png", i),
+        width = 800, height = 600, res = 100)
     outliers <- knnOutliers(urd_object, 
                           nn.1 = 1,
                           nn.2 = round(nn_value/3),
-                          x.max = x_max_value,  # Using calculated x.max
+                          x.max = x_max_value,
                           slope.r = params$slope.r,
                           int.r = params$int.r,
                           slope.b = params$slope.b,
                           int.b = params$int.b,
                           title = sprintf("Parameter Set %d", i))
+    dev.off()
     
     outliers_results[[i]] <- list(
         params = params,
@@ -214,7 +258,6 @@ for(i in seq_along(parameter_combinations)) {
         percent = 100 * length(outliers) / n_cells
     )
 }
-dev.off()
 
 # Compare results
 message("\nOutlier detection results with different parameter sets:")

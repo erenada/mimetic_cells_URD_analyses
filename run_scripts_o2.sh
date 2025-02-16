@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -c 20                               # Request 20 cores
-#SBATCH -t 4-00:00:00                       # Runtime in D-HH:MM format (4 days)
-#SBATCH -p medium                           # Partition to run in
+#SBATCH -t 12:00:00                       # Runtime in D-HH:MM format (12 hours)
+#SBATCH -p short                           # Partition to run in
 #SBATCH --mem=64G                           # Memory total in MiB (for all cores)
 #SBATCH -o logs/urd_%j.out                  # File to which STDOUT will be written, %j is job ID
 #SBATCH -e logs/urd_%j.err                  # File to which STDERR will be written, %j is job ID
