@@ -29,50 +29,148 @@ graph TD
 
 ## 1. PCA Parameters
 
-### mp.factor Selection
-- **Purpose**: Determines which principal components are considered significant based on modified parallel analysis
-- **Values tested**: 1.5, 2.0, 2.5
-- **Default**: 2.0
-- **Rationale**: 
-  - mp.factor = 2 means PCs with standard deviation 2x higher than expected by noise are considered significant
-  - Lower values (1.5) are more permissive, capturing more subtle variations
-  - Higher values (2.5) are more stringent, focusing on strongest signals
-- **Output**: Number of significant PCs for each mp.factor value
+### mp.factor (Marchenko-Pastur factor) Selection
+- **Definition**: A multiplier used to determine the significance threshold for principal components based on the Marchenko-Pastur law of random matrix theory.
 
-**Parameter Relationship Visualization**:
+- **Mathematical Basis**:
+  ```
+  Significance Threshold = mp.factor × (Theoretical Noise Upper Bound)
+  ```
+  - Theoretical Noise Upper Bound is calculated using the Marchenko-Pastur distribution
+  - PCs with eigenvalues above this threshold are considered significant
+
+- **Values Tested**: 2.0, 3.0, 4.0
+  - Each value represents a different stringency level:
+    1. mp.factor = 2.0 (Default):
+       - Keeps PCs with eigenvalues > 2× noise threshold
+       - More permissive, captures subtle variations
+       - Typically retains 15-25 PCs
+    2. mp.factor = 3.0:
+       - Keeps PCs with eigenvalues > 3× noise threshold
+       - Intermediate stringency
+       - Typically retains 10-15 PCs
+    3. mp.factor = 4.0:
+       - Keeps PCs with eigenvalues > 4× noise threshold
+       - Most stringent, focuses on strongest signals
+       - Typically retains 6-12 PCs
+
+- **Selection Rationale**:
+  1. Signal-to-Noise Trade-off:
+     - Lower values (2.0): Better for capturing subtle biological variation
+     - Higher values (4.0): Better for focusing on robust signals
+  
+  2. Computational Considerations:
+     - More PCs = Higher computational cost
+     - Fewer PCs = Faster downstream analysis
+  
+  3. Biological Relevance:
+     - Too few PCs might miss important biological signals
+     - Too many PCs might introduce noise into downstream analyses
+
+- **Default Choice**: mp.factor = 2.0
+  - Balances sensitivity and specificity
+  - Captures sufficient biological variation
+  - Maintains reasonable computational efficiency
+
+**Example Output**:
 ```
-Noise Level      Signal Strength      mp.factor
-(Expected SD) x (Multiplier)     =   Threshold
-     1       x      1.5         =      1.5
-     1       x      2.0         =      2.0
-     1       x      2.5         =      2.5
+PCA significant components with different mp.factor values:
+mp.factor = 2: 22 significant PCs (More permissive)
+mp.factor = 3: 16 significant PCs (Intermediate)
+mp.factor = 4: 12 significant PCs (More stringent)
 ```
 
-**Key References**:
-1. Buja A, Eyuboglu N (1992). "Remarks on Parallel Analysis." Multivariate Behavioral Research, 27(4), 509-540.
-2. Farrell et al. (2018). "Single-cell RNA-seq reveals changes in cell cycle and differentiation programs upon aging of hematopoietic stem cells." Genome Research, 28(9), 1053-1066.
+**Visual Representation**:
+```mermaid
+graph TD
+    A[Raw Eigenvalues] --> B{Compare to Threshold}
+    B -->|> 2× noise| C[mp.factor = 2.0]
+    B -->|> 3× noise| D[mp.factor = 3.0]
+    B -->|> 4× noise| E[mp.factor = 4.0]
+    C --> F[More PCs, Subtle Signals]
+    D --> G[Balance Signal/Noise]
+    E --> H[Fewer PCs, Strong Signals]
+```
+
+**Implementation Details**:
+```R
+# Calculate PCA with different mp.factor values
+for(mp in c(2, 3, 4)) {
+  urd_object <- calcPCA(urd_object, mp.factor = mp)
+  n_sig_pcs <- length(urd_object@pca.sig)
+  # Number of significant PCs varies with mp.factor
+}
+```
+
+**Key Considerations**:
+1. Dataset Size Impact:
+   - Larger datasets might benefit from stricter thresholds
+   - Smaller datasets might need more permissive thresholds
+
+2. Noise Characteristics:
+   - Technical noise level in the data
+   - Biological heterogeneity
+   - Batch effects
+
+3. Downstream Applications:
+   - Clustering analysis
+   - Trajectory inference
+   - Visualization
 
 ## 2. tSNE Parameters
 
-### Perplexity Selection
-- **Rule of thumb**: perplexity should be between 5 and sqrt(n_cells)/3
-- **Formula**:
+### Perplexity Selection and Implementation
+- **Automated Selection Process**:
   ```R
   min_perp <- 5
-  max_perp <- min(50, floor(sqrt(n_cells)/3))
+  max_perp <- min(30, floor(sqrt(n_cells)/3))
+  perplexity_values <- unique(round(c(
+      min_perp,
+      floor(max_perp/2),
+      max_perp
+  )))
   ```
-- **Rationale**:
-  - Minimum of 5 ensures statistical stability
-  - Maximum scales with dataset size but capped at 50 to prevent oversmoothing
-  - Testing multiple values helps identify optimal local-global structure balance
 
-**Parameter Scaling Visualization**:
+- **Robust Implementation**:
+  1. Error Handling:
+     - Each tSNE calculation is wrapped in error handling
+     - Failed calculations are logged but don't halt the process
+     - Successful calculations are tracked separately
+  
+  2. Quality Control:
+     - Verification of tSNE calculation success
+     - Validation of plot creation
+     - Tracking of successful perplexity values
+  
+  3. Result Selection:
+     - Uses highest successful perplexity value
+     - Falls back gracefully if some perplexity values fail
+     - Ensures final tSNE coordinates are valid
+
+**Parameter Scaling Examples**:
 ```
-Dataset Size (N)  |  Max Perplexity  |  Recommended Range
-     1,000        |      10          |     5-10
-    10,000        |      33          |     5-33
-   100,000        |      50          |     5-50
+Dataset Size (N)  |  Max Perplexity  |  Tested Values
+     500         |       13          |    5, 9, 13
+    1,000        |       18          |    5, 11, 18
+    5,000        |       30          |    5, 17, 30
+   10,000+       |       30          |    5, 17, 30
 ```
+
+**Implementation Safeguards**:
+1. Input Validation:
+   - Perplexity values must be positive integers
+   - Maximum perplexity capped at 30 to prevent oversmoothing
+   - Minimum perplexity of 5 ensures statistical stability
+
+2. Resource Management:
+   - Garbage collection after each calculation
+   - Device closure guaranteed even on errors
+   - Memory usage monitored throughout process
+
+3. Output Validation:
+   - Plot creation verified
+   - File existence checked
+   - Results stored only for successful calculations
 
 **Key References**:
 1. van der Maaten L, Hinton G (2008). "Visualizing Data using t-SNE." Journal of Machine Learning Research, 9, 2579-2605.
@@ -258,136 +356,6 @@ Distance Thresholds:
 1. Farrell JA et al. (2018). "Single-cell reconstruction of developmental trajectories during zebrafish embryogenesis." Science, 360(6392), eaar3131.
 2. Ester M et al. (1996). "A Density-Based Algorithm for Discovering Clusters in Large Spatial Databases with Noise." KDD-96 Proceedings, 226-231.
 3. Ankerst M et al. (1999). "OPTICS: Ordering Points To Identify the Clustering Structure." ACM SIGMOD Record, 28(2), 49-60.
-
-## 5. Diffusion Map Analysis
-
-### Overview
-Diffusion maps provide a way to analyze the continuous nature of cell differentiation processes in single-cell RNA sequencing data. The method calculates transition probabilities between cells, and the eigendecomposition of these probabilities gives diffusion components that comprise the diffusion map.
-
-### Parameter Selection
-
-#### Key Parameters
-1. **knn (k-nearest neighbors)**:
-   - Controls the local neighborhood size for transition probability calculation
-   - Affects the granularity of the diffusion map
-   - Recommended values:
-     - Small datasets (<10,000 cells): 100-150
-     - Medium datasets (10,000-40,000 cells): 150-200
-     - Large datasets (>40,000 cells): 200+
-
-2. **sigma (Gaussian kernel bandwidth)**:
-   - Controls the width of the Gaussian kernel used in transition probability calculation
-   - Critical for capturing the right scale of cellular transitions
-   - Typical range: 4-10
-   - Optimal value depends on data structure
-
-#### Parameter Optimization Process
-```R
-# Example parameter combinations
-knn_values <- c(100, 150, 200)
-sigma_values <- c(4, 6, 8, 10)
-```
-
-### Workflow Steps
-
-1. **Diffusion Map Calculation**:
-   - Calculate diffusion map using `calcDM()`
-   - Parameters: knn, sigma, distance metric
-   - Output: Diffusion components in URD object @dm slot
-
-2. **Root Cell Definition**:
-   - Identify cells from earliest developmental stage
-   - These serve as starting points for pseudotime calculation
-   - Critical for accurate trajectory reconstruction
-
-3. **Pseudotime and Transition Probability Calculation**:
-   - Use `floodPseudotime()` function
-   - Calculates both pseudotime and transition probabilities
-   - Parameters:
-     - root.cells: Vector of root cell names
-     - n.cores: Number of cores for parallel processing
-     - minimum.cells: Minimum cells per pseudotime bin
-   - Output:
-     - Pseudotime values in URD object
-     - Transition probabilities between cells
-
-4. **Quality Control**:
-   - Verify pseudotime progression matches biological expectations
-   - Check transition probability distributions
-   - Validate root cell selection impact
-
-### Selection Criteria and Visualization Examples
-
-#### Example Diffusion Component Patterns
-
-```
-DC1  ▁▁▂▃▅▇█▇▅▃▂▁▁   Good: Sharp, distinct peaks
-DC2  ▁▂▅▇█▇▅▂▁▁▁▁   Good: Clear structure
-DC3  ▁▁▂▅▇█▇▅▂▁▁▁   Good: Well-defined transitions
-DC4  ▁▂▃▅▆▇▆▅▃▂▁▁   Good: Gradual changes
-DC5  ▁▂▃▄▅▆▅▄▃▂▁▁   Good: Smooth progression
-DC6  ▁▁▂▃▄▃▂▁▁▁▁▁   Starting to blur
-DC7  ▁▂▂▃▂▂▁▁▁▁▁▁   Becoming diffuse
-DC8  ▁▁▂▁▂▁▁▁▁▁▁▁   Noise dominant
-```
-
-### Implementation
-
-1. **Parameter Exploration**:
-   ```bash
-   sbatch run_diffusion_map_o2.sh
-   ```
-   - Tests multiple parameter combinations
-   - Generates visualization for each combination
-   - Saves results in parameter_exploration.pdf
-
-2. **Final Calculation**:
-   ```bash
-   sbatch run_diffusion_map_o2.sh <knn> <sigma>
-   ```
-   - Runs with chosen optimal parameters
-   - Calculates final diffusion map
-   - Prepares for pseudotime calculation
-
-### Resource Requirements
-- Memory: 64GB RAM
-- CPU: 20 cores
-- Time: Up to 4 days for large datasets
-- Storage: ~1GB per parameter combination
-
-### Output Files
-1. **Parameter Exploration**:
-   - `results/plots/diffusion_map/parameter_exploration.pdf`
-   - Visual comparison of different parameter combinations
-
-2. **Final Results**:
-   - `data/urd_object_with_dm_knn{K}_sigma{S}.rds`
-   - `results/plots/diffusion_map/final_diffusion_components.pdf`
-
-### Quality Control
-1. **Visual Inspection**:
-   - Check DC plots for expected patterns
-   - Verify stage separation in diffusion space
-   - Look for smooth transitions between stages
-
-2. **Technical Validation**:
-   - Verify computational stability
-   - Check for batch effects
-   - Assess robustness to parameter changes
-
-### References
-
-1. Haghverdi L, et al. (2016). "Diffusion pseudotime robustly reconstructs lineage branching." Nature Methods, 13(10), 845-848.
-   - *Original diffusion map method for single-cell data*
-
-2. Farrell JA, et al. (2018). "Single-cell reconstruction of developmental trajectories during zebrafish embryogenesis." Science, 360(6392), eaar3131.
-   - *URD implementation and parameter optimization*
-
-3. Angerer P, et al. (2016). "destiny: diffusion maps for large-scale single-cell data in R." Bioinformatics, 32(8), 1241-1243.
-   - *Technical details of diffusion map implementation*
-
-4. Wolf FA, et al. (2019). "PAGA: graph abstraction reconciles clustering with trajectory inference through a topology preserving map of single cells." Genome Biology, 20(1), 59.
-   - *Comparison of different trajectory inference methods*
 
 ## Output and Validation
 

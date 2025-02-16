@@ -145,8 +145,6 @@ base_min_nn <- ceiling(sqrt(n_cells)/2)
 base_max_nn <- ceiling(sqrt(n_cells))
 
 # Adjust nn based on complexity:
-# - For more complex data (many stages relative to cells), use fewer neighbors
-# - For simpler data (few stages relative to cells), use more neighbors
 complexity_adjustment <- 1 / (1 + log2(complexity_factor))
 min_nn <- ceiling(base_min_nn * complexity_adjustment)
 max_nn <- ceiling(base_max_nn * complexity_adjustment)
@@ -163,14 +161,8 @@ message(sprintf("Complexity adjustment factor: %.2f", complexity_adjustment))
 message(sprintf("Final adjusted range: %d-%d", min_nn, max_nn))
 message(sprintf("Testing nearest neighbor values: %s", paste(nn_values, collapse=", ")))
 
-set.seed(123)
-urd_object <- graphClustering(urd_object, 
-                           dim.use = "pca", 
-                           num.nn = nn_values,
-                           do.jaccard = TRUE, 
-                           method = "Louvain")
-
-# Calculate clustering for each nn value separately
+# Calculate clustering for each nn value
+clustering_results <- list()
 for(nn in nn_values) {
   message(sprintf("\nCalculating clustering with %d nearest neighbors...", nn))
   set.seed(123)
@@ -181,10 +173,11 @@ for(nn in nn_values) {
                              do.jaccard = TRUE, 
                              method = "Louvain")
   
-  # Verify clustering was successful
+  # Store clustering results
   cluster_name <- sprintf("Louvain-%d", nn)
   if(!is.null(urd_object@group.ids[[cluster_name]])) {
     message(sprintf("Successfully calculated clusters for nn=%d", nn))
+    clustering_results[[as.character(nn)]] <- urd_object@group.ids[[cluster_name]]
   } else {
     message(sprintf("Warning: Clustering failed for nn=%d", nn))
   }
@@ -205,14 +198,12 @@ if(n_cells < 1000) {
     nn_value <- 100
 }
 
-# Calculate x.max based on distance distribution
+# Calculate kNN only once
 urd_object <- calcKNN(urd_object, nn = nn_value)
-# Get distances from the kNN calculation
-dist_matrix <- urd_object@knn$nn.dists  # Corrected path to access kNN distances
-# Get the distribution of distances
+dist_matrix <- urd_object@knn$nn.dists
 all_distances <- as.vector(dist_matrix)
-# Calculate x.max as 95th percentile of distances
 x_max_value <- quantile(all_distances, 0.95)
+
 message(sprintf("\nDistance distribution statistics:"))
 message(sprintf("Min distance: %.2f", min(all_distances)))
 message(sprintf("Median distance: %.2f", median(all_distances)))
@@ -224,15 +215,97 @@ message(sprintf("nn_value: %d (based on dataset size)", nn_value))
 message(sprintf("nn.2: %d (1/3 of nn_value)", round(nn_value/3)))
 message(sprintf("x.max: %.2f (95th percentile of distances)", x_max_value))
 
-# Try different parameter combinations
-parameter_combinations <- list(
-    list(slope.r = 1.1, int.r = 2.9, slope.b = 0.85, int.b = 10),  # Original
-    list(slope.r = 1.2, int.r = 3.5, slope.b = 0.9, int.b = 8),    # More lenient
-    list(slope.r = 1.3, int.r = 4.0, slope.b = 0.95, int.b = 6)    # Most lenient
-)
-
 # Create directory for outlier plots
 dir.create("results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
+
+# Function to calculate data-driven bounds
+calculate_data_driven_bounds <- function(dist_matrix, nn_value) {
+    # Get distances
+    d1 <- dist_matrix[,1]  # Distance to 1st neighbor
+    dn <- dist_matrix[,round(nn_value/3)]  # Distance to n/3 neighbor
+    
+    # Fit linear model
+    lm_fit <- lm(dn ~ d1)
+    
+    # Get base slope and intercept
+    base_slope <- coef(lm_fit)[2]
+    base_intercept <- coef(lm_fit)[1]
+    
+    # Calculate residuals and their standard deviation
+    residuals <- residuals(lm_fit)
+    resid_sd <- sd(residuals)
+    
+    # Calculate bounds using residual distribution
+    # Upper bound: 2.5 standard deviations above regression line
+    slope_r <- base_slope
+    int_r <- base_intercept + 2.5 * resid_sd
+    
+    # Lower bound: 2.5 standard deviations below regression line
+    slope_b <- base_slope
+    int_b <- base_intercept - 2.5 * resid_sd
+    
+    # Calculate x.max using robust statistics
+    x_max <- quantile(d1, 0.95)
+    
+    # Create diagnostic plot
+    png("results/plots/dimensionality_reduction/outliers/data_driven_fit.png",
+        width = 800, height = 600, res = 100)
+    plot(d1, dn, 
+         xlab = "Distance to neighbor 1",
+         ylab = sprintf("Distance to neighbor %d", round(nn_value/3)),
+         main = "Data-Driven Boundary Fitting")
+    abline(lm_fit, col = "black", lty = 2)  # Base fit
+    abline(a = int_r, b = slope_r, col = "red")  # Upper bound
+    abline(a = int_b, b = slope_b, col = "blue")  # Lower bound
+    abline(v = x_max, col = "green")  # x.max
+    dev.off()
+    
+    # Print fit statistics
+    message("\nData-driven bound statistics:")
+    message(sprintf("Base fit: y = %.3fx + %.3f", base_slope, base_intercept))
+    message(sprintf("Residual SD: %.3f", resid_sd))
+    message(sprintf("R-squared: %.3f", summary(lm_fit)$r.squared))
+    
+    return(list(
+        slope.r = slope_r,
+        int.r = int_r,
+        slope.b = slope_b,
+        int.b = int_b,
+        x.max = x_max,
+        fit = lm_fit
+    ))
+}
+
+# Calculate data-driven parameters
+bounds <- calculate_data_driven_bounds(dist_matrix, nn_value)
+
+# Create parameter combinations around the data-driven values
+parameter_combinations <- list(
+    # Base parameters from data: Uses exactly 2.5 SD from regression line
+    # This is our default choice as it balances sensitivity and specificity
+    list(slope.r = bounds$slope.r, 
+         int.r = bounds$int.r, 
+         slope.b = bounds$slope.b, 
+         int.b = bounds$int.b,
+         description = "Base parameters (2.5 SD from regression)"),
+    
+    # Slightly more stringent: Tightens bounds by 5%
+    # Use when you need more conservative outlier detection
+    list(slope.r = bounds$slope.r * 0.95, 
+         int.r = bounds$int.r * 0.95,
+         slope.b = bounds$slope.b * 1.05, 
+         int.b = bounds$int.b * 1.05,
+         description = "Stringent bounds (bounds tightened by 5%)"),
+    
+    # Slightly more lenient: Relaxes bounds by 5%
+    # Use when you want to identify only the most extreme outliers
+    list(slope.r = bounds$slope.r * 1.05, 
+         int.r = bounds$int.r * 1.05,
+         slope.b = bounds$slope.b * 0.95, 
+         int.b = bounds$int.b * 0.95,
+         description = "Lenient bounds (bounds relaxed by 5%)")
+)
+
 outliers_results <- list()
 for(i in seq_along(parameter_combinations)) {
     params <- parameter_combinations[[i]]
@@ -242,72 +315,97 @@ for(i in seq_along(parameter_combinations)) {
     outliers <- knnOutliers(urd_object, 
                           nn.1 = 1,
                           nn.2 = round(nn_value/3),
-                          x.max = x_max_value,
+                          x.max = bounds$x.max,
                           slope.r = params$slope.r,
                           int.r = params$int.r,
                           slope.b = params$slope.b,
                           int.b = params$int.b,
-                          title = sprintf("Parameter Set %d", i))
+                          title = sprintf("%s\n(Parameter Set %d)", params$description, i))
     dev.off()
     
     outliers_results[[i]] <- list(
         params = params,
         outliers = outliers,
-        percent = 100 * length(outliers) / n_cells
+        percent = 100 * length(outliers) / n_cells,
+        description = params$description
     )
+    
+    # Print detailed results for each parameter set
+    message(sprintf("\nParameter Set %d (%s):", i, params$description))
+    message(sprintf("Slope (red): %.3f, Intercept (red): %.3f", params$slope.r, params$int.r))
+    message(sprintf("Slope (blue): %.3f, Intercept (blue): %.3f", params$slope.b, params$int.b))
+    message(sprintf("Outliers: %d (%.2f%%)", length(outliers), 100 * length(outliers) / n_cells))
 }
 
-# Compare results
-message("\nOutlier detection results with different parameter sets:")
-for(i in seq_along(outliers_results)) {
-    result <- outliers_results[[i]]
-    message(sprintf("Parameter Set %d:", i))
-    message(sprintf("  Parameters: slope.r=%.1f, int.r=%.1f, slope.b=%.2f, int.b=%.1f",
-                   result$params$slope.r, result$params$int.r,
-                   result$params$slope.b, result$params$int.b))
-    message(sprintf("  Outliers: %d (%.1f%%)", 
-                   length(result$outliers), result$percent))
-}
-
-# Use the parameter set that gives reasonable outlier percentage (between 1% and 10%)
-best_params <- NULL
-best_outliers <- NULL
-for(result in outliers_results) {
-    if(result$percent >= 1 && result$percent <= 10) {
-        best_params <- result$params
-        best_outliers <- result$outliers
-        break
+# Compare results and select best parameters
+# We prefer the base parameter set (Set 1) if it gives reasonable results (1-10% outliers)
+best_result <- NULL
+if(outliers_results[[1]]$percent >= 1 && outliers_results[[1]]$percent <= 10) {
+    best_result <- outliers_results[[1]]
+    message("\nSelected Parameter Set 1 (Base parameters) as it gives reasonable outlier percentage.")
+} else {
+    # If base parameters don't work, try others
+    for(i in seq_along(outliers_results)) {
+        if(outliers_results[[i]]$percent >= 1 && outliers_results[[i]]$percent <= 10) {
+            best_result <- outliers_results[[i]]
+            message(sprintf("\nSelected Parameter Set %d (%s) as it gives reasonable outlier percentage.", 
+                          i, outliers_results[[i]]$description))
+            break
+        }
     }
 }
 
-if(is.null(best_params)) {
-    # If no parameter set gives desired range, use most lenient set
-    best_params <- parameter_combinations[[length(parameter_combinations)]]
-    urd_object <- calcKNN(urd_object, nn = nn_value)
-    best_outliers <- knnOutliers(urd_object, 
-                               nn.1 = 1,
-                               nn.2 = round(nn_value/3),
-                               x.max = x_max_value,
-                               slope.r = best_params$slope.r,
-                               int.r = best_params$int.r,
-                               slope.b = best_params$slope.b,
-                               int.b = best_params$int.b,
-                               title = "Final Outlier Detection")
+# If no good result found, use most lenient set
+if(is.null(best_result)) {
+    best_result <- outliers_results[[length(outliers_results)]]
+    message(sprintf("\nNo parameter set gave 1-10%% outliers. Using most lenient set (%s).", 
+                   best_result$description))
 }
 
-# Save outlier information
+best_outliers <- best_result$outliers
+
+# Save outlier information with parameter set details
+writeLines(c(
+    sprintf("# Outlier Detection Parameters Used:"),
+    sprintf("# %s", best_result$description),
+    sprintf("# Slope (red): %.3f, Intercept (red): %.3f", best_result$params$slope.r, best_result$params$int.r),
+    sprintf("# Slope (blue): %.3f, Intercept (blue): %.3f", best_result$params$slope.b, best_result$params$int.b),
+    sprintf("# Outlier percentage: %.2f%%", best_result$percent),
+    sprintf("# Total cells analyzed: %d", n_cells),
+    sprintf("# Number of outlier cells: %d", length(best_outliers)),
+    "",
+    "# Dataset Statistics:",
+    sprintf("# Minimum distance: %.2f", min(all_distances)),
+    sprintf("# Median distance: %.2f", median(all_distances)),
+    sprintf("# 95th percentile (x.max): %.2f", x_max_value),
+    sprintf("# Maximum distance: %.2f", max(all_distances)),
+    "",
+    "# Cell IDs identified as outliers:",
+    best_outliers
+), "results/outlier_detection_parameters.txt")
+
+# Also save just the outlier cell IDs in a separate file
 write.table(best_outliers, 
            file = "results/outlier_cells.txt", 
            row.names = FALSE, 
            col.names = FALSE, 
            quote = FALSE)
 
-message(sprintf("\nIdentified %d outliers (%.1f%% of cells)", 
-                length(best_outliers), 100 * length(best_outliers) / n_cells))
+message(sprintf("\nIdentified %d outliers (%.1f%%) using %s", 
+                length(best_outliers), 
+                100 * length(best_outliers) / n_cells,
+                best_result$description))
 
 # Create clean subset
 cells.keep <- setdiff(colnames(urd_object@logupx.data), best_outliers)
 urd_object_clean <- urdSubset(urd_object, cells.keep = cells.keep)
+
+# Restore clustering results
+for(nn in names(clustering_results)) {
+    cluster_name <- sprintf("Louvain-%d", as.numeric(nn))
+    urd_object@group.ids[[cluster_name]] <- clustering_results[[nn]]
+    urd_object_clean@group.ids[[cluster_name]] <- clustering_results[[nn]][cells.keep]
+}
 
 # Save results
 saveRDS(urd_object, "data/urd_object_with_dimred.rds")

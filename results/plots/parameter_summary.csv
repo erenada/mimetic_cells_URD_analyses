@@ -1,7 +1,0 @@
-parameter,value
-PCA mp.factor,2.0
-Significant PCs,106
-tSNE perplexity range,5-50
-Clustering nn range,50-150
-kNN value,100
-Outlier percentage,98.6%
