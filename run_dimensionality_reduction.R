@@ -28,7 +28,7 @@ message(sprintf("Number of variable genes: %d", length(urd_object@var.genes)))
 # -----------------------------
 message("\n1. PCA Analysis")
 # Try different mp.factor values
-mp_factors <- c(1.5, 2, 2.5)
+mp_factors <- c(2, 3, 4)  # Testing only 2, 3, and 4
 pca_results <- list()
 
 pdf("results/plots/dimensionality_reduction/pca_parameter_selection.pdf")
@@ -161,9 +161,24 @@ if(n_cells < 1000) {
     nn_value <- 100
 }
 
+# Calculate x.max based on distance distribution
+urd_object <- calcKNN(urd_object, nn = nn_value)
+# Get distances from the kNN calculation
+dist_matrix <- urd_object@knn$nn.dists  # Corrected path to access kNN distances
+# Get the distribution of distances
+all_distances <- as.vector(dist_matrix)
+# Calculate x.max as 95th percentile of distances
+x_max_value <- quantile(all_distances, 0.95)
+message(sprintf("\nDistance distribution statistics:"))
+message(sprintf("Min distance: %.2f", min(all_distances)))
+message(sprintf("Median distance: %.2f", median(all_distances)))
+message(sprintf("95th percentile (x.max): %.2f", x_max_value))
+message(sprintf("Max distance: %.2f", max(all_distances)))
+
 message(sprintf("\nChosen parameters for kNN:"))
 message(sprintf("nn_value: %d (based on dataset size)", nn_value))
 message(sprintf("nn.2: %d (1/3 of nn_value)", round(nn_value/3)))
+message(sprintf("x.max: %.2f (95th percentile of distances)", x_max_value))
 
 # Try different parameter combinations
 parameter_combinations <- list(
@@ -177,11 +192,10 @@ outliers_results <- list()
 for(i in seq_along(parameter_combinations)) {
     params <- parameter_combinations[[i]]
     
-    urd_object <- calcKNN(urd_object, nn = nn_value)
     outliers <- knnOutliers(urd_object, 
                           nn.1 = 1,
                           nn.2 = round(nn_value/3),
-                          x.max = 40,
+                          x.max = x_max_value,  # Using calculated x.max
                           slope.r = params$slope.r,
                           int.r = params$int.r,
                           slope.b = params$slope.b,
@@ -226,7 +240,7 @@ if(is.null(best_params)) {
     best_outliers <- knnOutliers(urd_object, 
                                nn.1 = 1,
                                nn.2 = round(nn_value/3),
-                               x.max = 40,
+                               x.max = x_max_value,
                                slope.r = best_params$slope.r,
                                int.r = best_params$int.r,
                                slope.b = best_params$slope.b,

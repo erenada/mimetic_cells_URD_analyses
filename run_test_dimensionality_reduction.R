@@ -35,8 +35,8 @@ message(sprintf("Number of variable genes: %d", length(urd_object@var.genes)))
 # 1. PCA Parameters
 # -----------------------------
 message("\n1. PCA Analysis")
-# Try different mp.factor values (adjusted for smaller dataset)
-mp_factors <- c(1.5, 2)
+# Try different mp.factor values (adjusted for test dataset)
+mp_factors <- c(2, 3, 4)  # Matching main script
 pca_results <- list()
 
 pdf("test_results/plots/dimensionality_reduction/pca_parameter_selection.pdf")
@@ -159,64 +159,113 @@ dev.off()
 # -----------------------------
 message("\n4. kNN and Outlier Detection")
 # Calculate optimal kNN value (adjusted for smaller dataset)
-nn_value <- as.integer(ceiling(sqrt(n_cells)/2))  # Reduced from original calculation
+if(n_cells < 1000) {
+    nn_value <- ceiling(sqrt(n_cells))
+} else if(n_cells < 10000) {
+    nn_value <- ceiling(sqrt(n_cells)/2)
+} else {
+    nn_value <- 100
+}
+
+# Calculate x.max based on distance distribution
+urd_object <- calcKNN(urd_object, nn = nn_value)
+# Get distances from the kNN calculation
+dist_matrix <- urd_object@knn$nn.dists  # Corrected path to access kNN distances
+# Get the distribution of distances
+all_distances <- as.vector(dist_matrix)
+# Calculate x.max as 95th percentile of distances
+x_max_value <- quantile(all_distances, 0.95)
+message(sprintf("\nDistance distribution statistics:"))
+message(sprintf("Min distance: %.2f", min(all_distances)))
+message(sprintf("Median distance: %.2f", median(all_distances)))
+message(sprintf("95th percentile (x.max): %.2f", x_max_value))
+message(sprintf("Max distance: %.2f", max(all_distances)))
 
 message(sprintf("\nChosen parameters for kNN:"))
 message(sprintf("nn_value: %d (based on dataset size)", nn_value))
-message(sprintf("nn.2: %d (1/5 of nn_value)", as.integer(round(nn_value/5))))
+message(sprintf("nn.2: %d (1/3 of nn_value)", round(nn_value/3)))
+message(sprintf("x.max: %.2f (95th percentile of distances)", x_max_value))
 
-# Try different nn values
-nn_values <- as.integer(unique(round(c(nn_value * 0.5, nn_value, nn_value * 1.5))))
+# Try different parameter combinations
+parameter_combinations <- list(
+    list(slope.r = 1.1, int.r = 2.9, slope.b = 0.85, int.b = 10),  # Original
+    list(slope.r = 1.2, int.r = 3.5, slope.b = 0.9, int.b = 8),    # More lenient
+    list(slope.r = 1.3, int.r = 4.0, slope.b = 0.95, int.b = 6)    # Most lenient
+)
 
-pdf("test_results/plots/dimensionality_reduction/knn_parameter_selection.pdf")
-outliers_per_nn <- list()
-for(nn in nn_values) {
-  urd_object <- calcKNN(urd_object, nn = nn)
-  outliers <- knnOutliers(urd_object, 
-                        nn.1 = 1,
-                        nn.2 = as.integer(round(nn/5)),
-                        x.max = 40,        # Original value
-                        slope.r = 1.1,     # Original value
-                        int.r = 2.9,       # Original value
-                        slope.b = 0.85,    # Original value
-                        int.b = 10,        # Original value
-                        title = sprintf("Outliers (nn=%d)", nn))
-  outliers_per_nn[[as.character(nn)]] <- outliers
+pdf("test_results/plots/dimensionality_reduction/outlier_parameter_selection.pdf")
+outliers_results <- list()
+for(i in seq_along(parameter_combinations)) {
+    params <- parameter_combinations[[i]]
+    
+    outliers <- knnOutliers(urd_object, 
+                          nn.1 = 1,
+                          nn.2 = round(nn_value/3),
+                          x.max = x_max_value,  # Using calculated x.max
+                          slope.r = params$slope.r,
+                          int.r = params$int.r,
+                          slope.b = params$slope.b,
+                          int.b = params$int.b,
+                          title = sprintf("Parameter Set %d", i))
+    
+    outliers_results[[i]] <- list(
+        params = params,
+        outliers = outliers,
+        percent = 100 * length(outliers) / n_cells
+    )
 }
 dev.off()
 
 # Compare results
-message("\nOutlier detection results with different nn values:")
-for(nn in names(outliers_per_nn)) {
-    n_outliers <- length(outliers_per_nn[[nn]])
-    percent_outliers <- 100 * n_outliers / n_cells
-    message(sprintf("nn=%s: %d outliers (%.1f%%)", nn, n_outliers, percent_outliers))
+message("\nOutlier detection results with different parameter sets:")
+for(i in seq_along(outliers_results)) {
+    result <- outliers_results[[i]]
+    message(sprintf("Parameter Set %d:", i))
+    message(sprintf("  Parameters: slope.r=%.1f, int.r=%.1f, slope.b=%.2f, int.b=%.1f",
+                   result$params$slope.r, result$params$int.r,
+                   result$params$slope.b, result$params$int.b))
+    message(sprintf("  Outliers: %d (%.1f%%)", 
+                   length(result$outliers), result$percent))
 }
 
-# Use the chosen nn_value for final outlier detection
-urd_object <- calcKNN(urd_object, nn = nn_value)
-outliers <- knnOutliers(urd_object, 
-                      nn.1 = 1,
-                      nn.2 = as.integer(round(nn_value/5)),
-                      x.max = 40,        # Original value
-                      slope.r = 1.1,     # Original value
-                      int.r = 2.9,       # Original value
-                      slope.b = 0.85,    # Original value
-                      int.b = 10,        # Original value
-                      title = "Final Outlier Detection")
+# Use the parameter set that gives reasonable outlier percentage (between 1% and 10%)
+best_params <- NULL
+best_outliers <- NULL
+for(result in outliers_results) {
+    if(result$percent >= 1 && result$percent <= 10) {
+        best_params <- result$params
+        best_outliers <- result$outliers
+        break
+    }
+}
+
+if(is.null(best_params)) {
+    # If no parameter set gives desired range, use most lenient set
+    best_params <- parameter_combinations[[length(parameter_combinations)]]
+    urd_object <- calcKNN(urd_object, nn = nn_value)
+    best_outliers <- knnOutliers(urd_object, 
+                               nn.1 = 1,
+                               nn.2 = round(nn_value/3),
+                               x.max = x_max_value,
+                               slope.r = best_params$slope.r,
+                               int.r = best_params$int.r,
+                               slope.b = best_params$slope.b,
+                               int.b = best_params$int.b,
+                               title = "Final Outlier Detection")
+}
 
 # Save outlier information
-write.table(outliers, 
+write.table(best_outliers, 
            file = "test_results/outlier_cells.txt", 
            row.names = FALSE, 
            col.names = FALSE, 
            quote = FALSE)
 
 message(sprintf("\nIdentified %d outliers (%.1f%% of cells)", 
-                length(outliers), 100 * length(outliers) / n_cells))
+                length(best_outliers), 100 * length(best_outliers) / n_cells))
 
 # Create clean subset
-cells.keep <- setdiff(colnames(urd_object@logupx.data), outliers)
+cells.keep <- setdiff(colnames(urd_object@logupx.data), best_outliers)
 urd_object_clean <- urdSubset(urd_object, cells.keep = cells.keep)
 
 # Save results
@@ -236,7 +285,7 @@ parameter_summary <- data.frame(
              sprintf("%d-%d", min(perplexity_values), max(perplexity_values)),
              sprintf("%d-%d", min(nn_values), max(nn_values)),
              sprintf("%d", nn_value),
-             sprintf("%.1f%%", 100 * length(outliers) / n_cells))
+             sprintf("%.1f%%", 100 * length(best_outliers) / n_cells))
 )
 write.csv(parameter_summary, 
           "test_results/parameter_summary.csv", 
