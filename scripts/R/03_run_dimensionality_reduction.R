@@ -59,8 +59,8 @@ n_sig_pcs <- length(urd_object@pca.sig)
 # 2. tSNE Parameters
 # -----------------------------
 message("\n2. tSNE Analysis")
+
 # Calculate perplexity based on dataset size
-# Rule of thumb: perplexity should be between 5 and sqrt(n_cells)/3
 min_perp <- 5
 max_perp <- min(50, floor(sqrt(n_cells)/3))
 perplexity_values <- unique(round(c(
@@ -71,58 +71,59 @@ perplexity_values <- unique(round(c(
 
 message(sprintf("Testing perplexity values: %s", paste(perplexity_values, collapse=", ")))
 
+# Store results
+tsne_results <- list()
+successful_perp <- c()
+
 for(perp in perplexity_values) {
-  message(sprintf("Computing tSNE with perplexity %d...", perp))
-  set.seed(123)
-  # Calculate tSNE
-  urd_object <- calcTsne(urd_object, perplexity = perp, theta = 0.5)
-  
-  # Verify tSNE calculation completed
-  if(!is.null(urd_object@tsne.y)) {
-    tryCatch({
-      # Create the plot file
-      png_file <- sprintf("results/plots/dimensionality_reduction/tsne/tsne_perp%d.png", perp)
-      message(sprintf("Creating plot: %s", png_file))
-      
-      # Open PNG device
-      png(png_file, width = 800, height = 600, res = 100)
-      
-      # Create plot
-      plotDim(urd_object, 
-              label = "stage",
-              reduction.use = "tsne",
-              plot.title = "Stage Distribution",
-              legend = TRUE)
-      
-      # Explicitly close the device
-      dev.off()
-      
-      # Force garbage collection
-      gc()
-      
-      # Verify file was created
-      if(file.exists(png_file)) {
-        message(sprintf("Successfully created plot for perplexity %d", perp))
-      } else {
-        message(sprintf("Warning: Failed to create plot for perplexity %d", perp))
-      }
+    message(sprintf("\nProcessing tSNE with perplexity %d...", perp))
+    
+    # Set random seed for reproducibility
+    set.seed(123)
+    
+    # Try tSNE calculation
+    tsne_result <- tryCatch({
+        urd_object <- calcTsne(urd_object, perplexity = perp, theta = 0.5)
+        if(is.null(urd_object@tsne.y)) {
+            stop("tSNE calculation produced NULL result")
+        }
+        TRUE
     }, error = function(e) {
-      message(sprintf("Error creating plot for perplexity %d: %s", perp, e$message))
-      if (dev.cur() > 1) dev.off()  # Close device if open
+        message(sprintf("Error in tSNE calculation: %s", e$message))
+        return(FALSE)
     })
-  } else {
-    message(sprintf("Warning: tSNE calculation failed for perplexity %d", perp))
-  }
+    
+    if(tsne_result) {
+        message(sprintf("tSNE calculation successful for perplexity %d", perp))
+        tsne_results[[as.character(perp)]] <- urd_object@tsne.y
+        successful_perp <- c(successful_perp, perp)
+    } else {
+        message(sprintf("tSNE calculation failed for perplexity %d", perp))
+    }
+    
+    # Force garbage collection
+    gc()
 }
 
-# Store the last tSNE result (highest perplexity) for downstream analysis
-set.seed(123)
-urd_object <- calcTsne(urd_object, perplexity = max(perplexity_values), theta = 0.5)
-
-# Verify final tSNE calculation
-if(is.null(urd_object@tsne.y)) {
-  stop("Final tSNE calculation failed")
+# Report results
+message("\ntSNE Analysis Summary:")
+if(length(successful_perp) > 0) {
+    message(sprintf("Successful perplexity values: %s", paste(successful_perp, collapse=", ")))
+} else {
+    stop("No successful tSNE calculations. Cannot proceed.")
 }
+
+# Store the best tSNE result
+if(length(successful_perp) > 0) {
+    max_successful_perp <- max(successful_perp)
+    urd_object@tsne.y <- tsne_results[[as.character(max_successful_perp)]]
+    message(sprintf("\nUsing final tSNE results from perplexity %d", max_successful_perp))
+} else {
+    stop("No successful tSNE calculations. Cannot proceed.")
+}
+
+# Force garbage collection
+gc()
 
 # 3. Clustering Parameters
 # -----------------------------

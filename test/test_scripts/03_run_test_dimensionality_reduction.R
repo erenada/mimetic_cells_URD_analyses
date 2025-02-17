@@ -6,7 +6,7 @@ suppressPackageStartupMessages({
 })
 
 # Find the most recent test URD object
-test_files <- list.files("../test_data", pattern = "test_urd_object_.*_with_var_genes\\.rds$", full.names = TRUE)
+test_files <- list.files("./test/test_data", pattern = "test_urd_object_.*_with_var_genes\\.rds$", full.names = TRUE)
 if (length(test_files) == 0) {
   stop("No test URD object with variable genes found. Please run run_test_linage_analysis.R first.")
 }
@@ -16,12 +16,13 @@ latest_test_file <- test_files[which.max(file.info(test_files)$mtime)]
 message(sprintf("Loading test URD object from: %s", latest_test_file))
 urd_object <- readRDS(latest_test_file)
 
+
 # Create all necessary directories
-dir.create("../test_data", recursive = TRUE, showWarnings = FALSE)
-dir.create("../test_results/dimensionality_reduction", recursive = TRUE, showWarnings = FALSE)
-dir.create("../test_results/plots/dimensionality_reduction/pca", recursive = TRUE, showWarnings = FALSE)
-dir.create("../test_results/plots/dimensionality_reduction/tsne", recursive = TRUE, showWarnings = FALSE)
-dir.create("../test_results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
+dir.create("./test/test_data", recursive = TRUE, showWarnings = FALSE)
+dir.create("./test/test_results/dimensionality_reduction", recursive = TRUE, showWarnings = FALSE)
+dir.create("./test/test_results/plots/dimensionality_reduction/pca", recursive = TRUE, showWarnings = FALSE)
+dir.create("./test/test_results/plots/dimensionality_reduction/tsne", recursive = TRUE, showWarnings = FALSE)
+dir.create("./test/test_results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
 
 message("Starting dimensionality reduction analysis...")
 
@@ -44,7 +45,7 @@ mp_factors <- c(2, 3, 4)  # Matching main script
 pca_results <- list()
 
 for(mp in mp_factors) {
-  png(sprintf("../test_results/plots/dimensionality_reduction/pca/pca_mp%.1f.png", mp),
+  png(sprintf("./test/test_results/plots/dimensionality_reduction/pca/pca_mp%.1f.png", mp),
       width = 800, height = 600, res = 100)
   urd_object <- calcPCA(urd_object, mp.factor = mp)
   pca_results[[as.character(mp)]] <- length(urd_object@pca.sig)
@@ -67,6 +68,7 @@ n_sig_pcs <- length(urd_object@pca.sig)
 # 2. tSNE Parameters
 # -----------------------------
 message("\n2. tSNE Analysis")
+
 # Calculate perplexity based on dataset size (adjusted for smaller dataset)
 min_perp <- 5
 max_perp <- min(30, floor(sqrt(n_cells)/3))
@@ -78,75 +80,55 @@ perplexity_values <- unique(round(c(
 
 message(sprintf("Testing perplexity values: %s", paste(perplexity_values, collapse=", ")))
 
-# Store tSNE results
+# Store results
 tsne_results <- list()
-successful_perp <- c()  # Track successful perplexity values
+successful_perp <- c()
 
 for(perp in perplexity_values) {
-  message(sprintf("\nProcessing tSNE with perplexity %d...", perp))
-  set.seed(123)
-  
-  # Calculate tSNE with error handling
-  tsne_success <- tryCatch({
-    urd_object <- calcTsne(urd_object, perplexity = perp, theta = 0.5)
-    !is.null(urd_object@tsne.y)
-  }, error = function(e) {
-    message(sprintf("Error in tSNE calculation for perplexity %d: %s", perp, e$message))
-    FALSE
-  })
-  
-  if(tsne_success) {
-    message(sprintf("tSNE calculation successful for perplexity %d", perp))
+    message(sprintf("\nProcessing tSNE with perplexity %d...", perp))
     
-    # Store tSNE results
-    tsne_results[[as.character(perp)]] <- list(
-      coords = urd_object@tsne.y,
-      perplexity = perp
-    )
+    # Set random seed for reproducibility
+    set.seed(123)
     
-    # Create plot with error handling
-    png_file <- sprintf("../test_results/plots/dimensionality_reduction/tsne/tsne_perp%d.png", perp)
-    plot_success <- tryCatch({
-      png(png_file, width = 800, height = 600, res = 100)
-      plotDim(urd_object, 
-              label = "stage",
-              reduction.use = "tsne",
-              plot.title = sprintf("Stage Distribution (perplexity=%d)", perp),
-              legend = TRUE)
-      dev.off()
-      TRUE
+    # Try tSNE calculation
+    tsne_result <- tryCatch({
+        urd_object <- calcTsne(urd_object, perplexity = perp, theta = 0.5)
+        if(is.null(urd_object@tsne.y)) {
+            stop("tSNE calculation produced NULL result")
+        }
+        TRUE
     }, error = function(e) {
-      if (dev.cur() > 1) dev.off()
-      message(sprintf("Error creating plot for perplexity %d: %s", perp, e$message))
-      FALSE
+        message(sprintf("Error in tSNE calculation: %s", e$message))
+        return(FALSE)
     })
     
-    if(plot_success) {
-      message(sprintf("Successfully created plot: %s", png_file))
-      successful_perp <- c(successful_perp, perp)
+    if(tsne_result) {
+        message(sprintf("tSNE calculation successful for perplexity %d", perp))
+        tsne_results[[as.character(perp)]] <- urd_object@tsne.y
+        successful_perp <- c(successful_perp, perp)
     } else {
-      message(sprintf("Failed to create plot for perplexity %d", perp))
+        message(sprintf("tSNE calculation failed for perplexity %d", perp))
     }
     
     # Force garbage collection
     gc()
-  } else {
-    message(sprintf("tSNE calculation failed for perplexity %d", perp))
-  }
 }
 
-# Report final status
+# Report results
 message("\ntSNE Analysis Summary:")
-message(sprintf("Attempted perplexity values: %s", paste(perplexity_values, collapse=", ")))
-message(sprintf("Successful perplexity values: %s", paste(successful_perp, collapse=", ")))
-
-# Use the highest successful perplexity result if available
 if(length(successful_perp) > 0) {
-  max_successful_perp <- max(successful_perp)
-  urd_object@tsne.y <- tsne_results[[as.character(max_successful_perp)]]$coords
-  message(sprintf("\nUsing final tSNE results from perplexity %d", max_successful_perp))
+    message(sprintf("Successful perplexity values: %s", paste(successful_perp, collapse=", ")))
 } else {
-  stop("No successful tSNE calculations. Cannot proceed.")
+    stop("No successful tSNE calculations. Cannot proceed.")
+}
+
+# Store the best tSNE result
+if(length(successful_perp) > 0) {
+    max_successful_perp <- max(successful_perp)
+    urd_object@tsne.y <- tsne_results[[as.character(max_successful_perp)]]
+    message(sprintf("\nUsing final tSNE results from perplexity %d", max_successful_perp))
+} else {
+    stop("No successful tSNE calculations. Cannot proceed.")
 }
 
 # Force garbage collection
@@ -244,7 +226,7 @@ message(sprintf("nn.2: %d (1/3 of nn_value)", round(nn_value/3)))
 message(sprintf("x.max: %.2f (95th percentile of distances)", x_max_value))
 
 # Create directory for outlier plots
-dir.create("../test_results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
+dir.create("/test/test_results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
 
 # Function to calculate data-driven bounds
 calculate_data_driven_bounds <- function(dist_matrix, nn_value) {
@@ -276,8 +258,8 @@ calculate_data_driven_bounds <- function(dist_matrix, nn_value) {
     x_max <- quantile(d1, 0.95)
     
     # Create diagnostic plot
-    png("../test_results/plots/dimensionality_reduction/outliers/data_driven_fit.png",
-        width = 800, height = 600, res = 100)
+    plot_file <- file.path("test", "test_results", "plots", "dimensionality_reduction", "outliers", "data_driven_fit.png")
+    png(plot_file, width = 800, height = 600, res = 100)
     plot(d1, dn, 
          xlab = "Distance to neighbor 1",
          ylab = sprintf("Distance to neighbor %d", round(nn_value/3)),
@@ -338,8 +320,8 @@ outliers_results <- list()
 for(i in seq_along(parameter_combinations)) {
     params <- parameter_combinations[[i]]
     
-    png(sprintf("../test_results/plots/dimensionality_reduction/outliers/outliers_set%d.png", i),
-        width = 800, height = 600, res = 100)
+    plot_file <- file.path("test", "test_results", "plots", "dimensionality_reduction", "outliers", sprintf("outliers_set%d.png", i))
+    png(plot_file, width = 800, height = 600, res = 100)
     outliers <- knnOutliers(urd_object, 
                           nn.1 = 1,
                           nn.2 = round(nn_value/3),
@@ -410,11 +392,11 @@ writeLines(c(
     "",
     "# Cell IDs identified as outliers:",
     best_outliers
-), "../test_results/outlier_detection_parameters.txt")
+), "/test/test_results/outlier_detection_parameters.txt")
 
 # Also save just the outlier cell IDs in a separate file
 write.table(best_outliers, 
-           file = "../test_results/outlier_cells.txt", 
+           file = "/test/test_results/outlier_cells.txt", 
            row.names = FALSE, 
            col.names = FALSE, 
            quote = FALSE)
@@ -436,8 +418,8 @@ for(nn in names(clustering_results)) {
 }
 
 # Save results
-saveRDS(urd_object, "../test_data/test_urd_object_with_dimred.rds")
-saveRDS(urd_object_clean, "../test_data/test_urd_object_clean.rds")
+saveRDS(urd_object, "./test_data/test_urd_object_with_dimred.rds")
+saveRDS(urd_object_clean, "./test_data/test_urd_object_clean.rds")
 
 # Save parameter choices
 parameter_summary <- data.frame(
@@ -455,13 +437,13 @@ parameter_summary <- data.frame(
              sprintf("%.1f%%", 100 * length(best_outliers) / n_cells))
 )
 write.csv(parameter_summary, 
-          "../test_results/dimensionality_reduction/parameters.csv", 
+          "/test/test_results/dimensionality_reduction/parameters.csv", 
           row.names = FALSE, 
           quote = FALSE)
 
 message("\nDimensionality reduction analysis complete!")
 message("Results saved to:")
 message("- URD object with dimensionality reduction: ../test_data/test_urd_object_with_dimred.rds")
-message("- Clean URD object: ../test_data/test_urd_object_clean.rds")
-message("- Parameter summary: ../test_results/dimensionality_reduction/parameters.csv")
-message("- Plots: ../test_results/plots/dimensionality_reduction/") 
+message("- Clean URD object: ./test_data/test_urd_object_clean.rds")
+message("- Parameter summary: /test/test_results/dimensionality_reduction/parameters.csv")
+message("- Plots: /test/test_results/plots/dimensionality_reduction/") 
