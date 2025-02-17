@@ -357,6 +357,123 @@ Distance Thresholds:
 2. Ester M et al. (1996). "A Density-Based Algorithm for Discovering Clusters in Large Spatial Databases with Noise." KDD-96 Proceedings, 226-231.
 3. Ankerst M et al. (1999). "OPTICS: Ordering Points To Identify the Clustering Structure." ACM SIGMOD Record, 28(2), 49-60.
 
+## 5. Pseudotime Calculation
+
+### Overview
+Pseudotime calculation in URD uses flood simulations to determine the developmental progression of cells from a defined root population. The method simulates random walks through the diffusion map space, starting from root cells and recording visit frequencies to establish pseudotime ordering.
+
+### Parameter Selection (Data-Driven Approach)
+
+#### 1. Minimum Cells Flooded
+- **Base Value Calculation**:
+  - Uses square root scaling of median stage size
+  - Provides statistical stability while maintaining resolution
+  - Automatically adapts to dataset characteristics
+
+- **Stage Size Variation Adjustment**:
+  - Accounts for heterogeneity in stage population sizes
+  - Larger adjustment for more variable stage sizes
+  - Ensures stable measurements across varying population densities
+
+- **Bounded Limits**:
+  - Lower bound: 3 cells minimum for statistical stability
+  - Upper bound: 5% of median stage size to prevent oversmoothing
+  - Adaptive bounds that scale with dataset characteristics
+
+#### 2. Root Cell Selection
+- **Stage-Based Identification**:
+  - Selects cells from earliest developmental stage
+  - Uses exact stage name matching for reliability
+  - Validates population size for statistical power
+
+- **Quality Control**:
+  - Verifies root stage identity
+  - Ensures sufficient root cell population
+  - Validates stage annotation consistency
+
+### Implementation Strategy
+
+#### 1. Flood Simulation Process
+- Multiple independent random walks from root cells
+- Records visit frequencies for each cell
+- Typically uses 100 simulations for robust statistics
+- Verbose progress tracking for quality control
+
+#### 2. Flood Processing
+- Aggregates results from multiple simulations
+- Handles missing values (up to 40% allowed)
+- Uses mean for pseudotime value calculation
+- Incorporates stability assessment
+
+### Quality Control and Validation
+
+#### 1. Stability Analysis
+- Generates stability plots to assess robustness
+- Evaluates consistency across simulations
+- Identifies potentially problematic regions
+- Quantifies simulation-to-simulation variation
+
+#### 2. Stage Progression
+- Calculates mean pseudotime per stage
+- Verifies logical developmental progression
+- Identifies potential trajectory issues
+- Assesses biological plausibility
+
+#### 3. Visualization
+1. Stage-wise pseudotime distributions
+   - Shows temporal ordering of stages
+   - Identifies potential mixing between stages
+   - Highlights transition points
+
+2. Diffusion component projection
+   - Maps pseudotime onto diffusion space
+   - Validates trajectory continuity
+   - Reveals potential branching points
+
+3. Stability assessment
+   - Quantifies measurement confidence
+   - Identifies regions of uncertainty
+   - Guides interpretation of results
+
+### Output and Documentation
+
+#### 1. Processed Data
+- URD object with pseudotime values
+- Complete processing history
+- Quality metrics and statistics
+
+#### 2. Parameter Documentation
+- Dataset characteristics
+- Selected parameters with rationale
+- Quality control metrics
+
+#### 3. Visualization Suite
+- Stability assessment plots
+- Stage progression visualization
+- Trajectory mapping
+
+### Expected Results
+
+#### Dataset Analysis
+- Total cells and stages analyzed
+- Distribution of cells across stages
+- Identification of root population
+
+#### Quality Metrics
+- Stage size distribution statistics
+- Population heterogeneity measures
+- Trajectory complexity assessment
+
+#### Pseudotime Evaluation
+- Distribution of pseudotime values
+- Stage-wise progression analysis
+- Trajectory continuity measures
+
+**Key References**:
+1. Farrell JA et al. (2018). "Single-cell reconstruction of developmental trajectories during zebrafish embryogenesis." Science, 360(6392), eaar3131.
+2. Haghverdi L et al. (2016). "Diffusion pseudotime robustly reconstructs lineage branching." Nature Methods, 13(10), 845-848.
+3. Setty M et al. (2016). "Wishbone identifies bifurcating developmental trajectories from single-cell data." Nature Biotechnology, 34(6), 637-645.
+
 ## Output and Validation
 
 The analysis produces:
