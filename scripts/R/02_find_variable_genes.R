@@ -20,6 +20,7 @@ safe_pdf <- function(filename, expr) {
 dir.create("data", recursive = TRUE, showWarnings = FALSE)
 dir.create("results/variable_genes", recursive = TRUE, showWarnings = FALSE)
 dir.create("results/plots/variable_genes", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/stats", recursive = TRUE, showWarnings = FALSE)
 
 # Check if URD object exists
 if (!file.exists("data/initial_urd_object.rds")) {
@@ -41,8 +42,52 @@ filterCells <- function(urd_obj, cells, min_counts = 100, min_genes = 50) {
   total_counts <- colSums(urd_obj@count.data[, cells, drop=FALSE])
   total_genes <- colSums(urd_obj@count.data[, cells, drop=FALSE] > 0)
   
-  # Apply filters
+  # Print before filtering statistics
+  message(sprintf("Before filtering:"))
+  message(sprintf("  - Number of cells: %d", length(cells)))
+  message(sprintf("  - Median counts per cell: %.1f", median(total_counts)))
+  message(sprintf("  - Median genes per cell: %.1f", median(total_genes)))
+  message(sprintf("  - Min counts per cell: %.1f", min(total_counts)))
+  message(sprintf("  - Min genes per cell: %.1f", min(total_genes)))
+  
+  # Check if filtering is needed
+  needs_filtering <- any(total_counts < min_counts | total_genes < min_genes)
+  
+  if (!needs_filtering) {
+    message("\nNo filtering needed - all cells already meet the minimum criteria:")
+    message(sprintf("  - All cells have >= %d counts", min_counts))
+    message(sprintf("  - All cells have >= %d genes", min_genes))
+    
+    return(list(
+      cells = cells,
+      stats = data.frame(
+        total_cells = length(cells),
+        passing_cells = length(cells),
+        min_count = min(total_counts),
+        median_count = median(total_counts),
+        max_count = max(total_counts),
+        min_genes = min(total_genes),
+        median_genes = median(total_genes),
+        max_genes = max(total_genes)
+      )
+    ))
+  }
+  
+  # If we reach here, filtering is needed
   valid_cells <- cells[total_counts >= min_counts & total_genes >= min_genes]
+  
+  # Calculate after filtering statistics
+  filtered_counts <- total_counts[total_counts >= min_counts & total_genes >= min_genes]
+  filtered_genes <- total_genes[total_counts >= min_counts & total_genes >= min_genes]
+  
+  # Print after filtering statistics
+  message(sprintf("\nAfter filtering (min_counts=%d, min_genes=%d):", min_counts, min_genes))
+  message(sprintf("  - Number of cells: %d", length(valid_cells)))
+  message(sprintf("  - Median counts per cell: %.1f", median(filtered_counts)))
+  message(sprintf("  - Median genes per cell: %.1f", median(filtered_genes)))
+  message(sprintf("  - Cells removed: %d (%.1f%%)", 
+                 length(cells) - length(valid_cells),
+                 100 * (length(cells) - length(valid_cells)) / length(cells)))
   
   # Return both valid cells and filtering statistics
   return(list(
@@ -64,6 +109,7 @@ filterCells <- function(urd_obj, cells, min_counts = 100, min_genes = 50) {
 message("Processing stages and calculating variable genes...")
 cells.each.stage <- list()
 var.genes.by.stage <- list()
+all_stage_stats <- list()  # Store statistics for all stages
 
 # Calculate variable genes for each stage
 safe_pdf("results/plots/variable_genes_by_stage.pdf", {
@@ -74,6 +120,11 @@ safe_pdf("results/plots/variable_genes_by_stage.pdf", {
     stage_cells <- rownames(urd_object@group.ids)[which(urd_object@group.ids$stage == stage)]
     result <- filterCells(urd_object, stage_cells, min_counts = 100, min_genes = 50)
     cells.each.stage[[stage]] <- result$cells
+    
+    # Store statistics with stage information
+    stage_stats <- result$stats
+    stage_stats$stage <- stage
+    all_stage_stats[[stage]] <- stage_stats
     
     message(sprintf("Cells: %d (after filtering)", length(result$cells)))
     
@@ -130,10 +181,16 @@ write.csv(var_genes_stats,
 # Save the updated URD object
 saveRDS(urd_object, "data/urd_object_with_var_genes.rds")
 
+# Combine and save all stage statistics
+all_stats_df <- do.call(rbind, all_stage_stats)
+write.csv(all_stats_df, 
+          file = "results/stats/cell_filtering_statistics.csv",
+          row.names = FALSE)
+
 message("\nVariable genes analysis complete!")
 message("Results saved to:")
 message("- URD object: data/urd_object_with_var_genes.rds")
 message("- Combined variable genes: results/variable_genes/all_stages_combined_var_genes.txt")
-message("- Statistics: results/variable_genes/variable_genes_statistics.csv")
+message("- Statistics: results/stats/cell_filtering_statistics.csv")
 message("- Stage-specific results: results/variable_genes/")
 message("- Plots: results/plots/variable_genes/")
