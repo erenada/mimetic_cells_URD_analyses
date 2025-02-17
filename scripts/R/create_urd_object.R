@@ -60,16 +60,15 @@ if (length(unique(stage_labels$`seurat_object@active.ident`)) < 2) {
 # add the stage labels to the metadata
 metadata$stages <- stage_labels$`seurat_object@active.ident`
 
-# Save intermediate files with timestamps
-timestamp <- format(Sys.time(), "%Y%m%d_%H%M")
+# Save intermediate files
 message("Saving intermediate files...")
 
 #save the metadata as a csv file 
-write.csv(metadata, sprintf("data/metadata_%s.csv", timestamp))
+write.csv(metadata, "data/metadata.csv")
 message("Metadata saved.")
 
 # save the counts matrix as a csv file
-write.csv(counts_matrix, sprintf("data/counts_matrix_%s.csv", timestamp))
+write.csv(counts_matrix, "data/counts_matrix.csv")
 message("Counts matrix saved.")
 
 # create a URD object with error handling
@@ -91,9 +90,9 @@ urd_object@group.ids$stage <- gsub(" ", "_", urd_object@group.ids$stage)
 message("Stage summary:")
 print(table(urd_object@group.ids$stage))
 
-# save the URD object
+# save the URD object with a fixed name
 message("Saving URD object...")
-saveRDS(urd_object, sprintf("data/initial_urd_object_%s.rds", timestamp))
+saveRDS(urd_object, "data/initial_urd_object.rds")
 message("URD object saved successfully.")
 
 # delete the seurat object, counts matrix, and metadata from the environment to free memory
@@ -102,7 +101,7 @@ gc() # Run garbage collection
 
 # Verify the saved object can be loaded
 message("Verifying saved URD object...")
-urd_object <- readRDS(sprintf("data/initial_urd_object_%s.rds", timestamp))
+urd_object <- readRDS("data/initial_urd_object.rds")
 message("URD object verified successfully.")
 
 # Print final summary

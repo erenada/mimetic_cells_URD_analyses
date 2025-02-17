@@ -1,15 +1,13 @@
 #!/bin/bash
-
-#SBATCH -J URD_var_genes                    # Job name
 #SBATCH -c 20                               # Request 20 cores
-#SBATCH -t 12:00:00                         # Runtime in D-HH:MM format
-#SBATCH -p short                            # Partition to run in
+#SBATCH -t 12:00:00                       # Runtime in D-HH:MM format (12 hours)
+#SBATCH -p short                           # Partition to run in
 #SBATCH --mem=64G                           # Memory total in MiB (for all cores)
-#SBATCH -o logs/var_genes_%j.out            # File to which STDOUT will be written, %j is job ID
-#SBATCH -e logs/var_genes_%j.err            # File to which STDERR will be written, %j is job ID
-#SBATCH --mail-type=ALL                     # Type of email notification- ALL=BEGIN,END,FAIL,REQUEUE
+#SBATCH -o logs/urd_%j.out                  # File to which STDOUT will be written, %j is job ID
+#SBATCH -e logs/urd_%j.err                  # File to which STDERR will be written, %j is job ID
 #SBATCH --mail-user=eren_ada@hms.harvard.edu
-#SBATCH --job-name=URD_var_genes           # Job name
+#SBATCH --mail-type=ALL
+#SBATCH --job-name=URD_dimred              # Job name updated to reflect actual task
 
 # Function to log messages with timestamps
 log_message() {
@@ -22,7 +20,7 @@ get_memory_usage() {
 }
 
 # Create necessary directories
-mkdir -p logs data results/variable_genes results/plots/variable_genes
+mkdir -p logs results/plots/dimensionality_reduction
 
 # Change to the working directory
 cd /n/groups/immdiv-bioinfo/eren/mimetic_cells_URD_analyses
@@ -52,11 +50,10 @@ module load gcc/9.2.0
 module load R/4.4.0
 log_message "Loaded gcc/9.2.0 and R/4.4.0"
 
-# Verify input file exists
+# Verify URD object exists
 log_message "=== Checking Input Files ==="
-if [ ! -f "data/initial_urd_object.rds" ]; then
-    log_message "Error: URD object file not found at data/initial_urd_object.rds"
-    log_message "Please run 01_submit_urd_object.sh first"
+if [ ! -f "data/initial_urd_object_20250210_1206.rds" ]; then
+    log_message "Error: URD object file not found at data/initial_urd_object_20250210_1206.rds"
     exit 1
 fi
 log_message "Input URD object found"
@@ -67,16 +64,16 @@ get_memory_usage
 log_message "CPU Usage:"
 top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}'
 
-# Run variable genes analysis
+# Run dimensionality reduction analysis
 log_message "=== Starting Analysis ==="
-log_message "Running variable genes analysis..."
+log_message "Running dimensionality reduction..."
 
 # Time the R script execution
-time Rscript scripts/R/02_find_variable_genes.R
+time Rscript run_dimensionality_reduction.R
 SCRIPT_STATUS=$?
 
 if [ $SCRIPT_STATUS -ne 0 ]; then
-    log_message "Error in find_variable_genes.R (Exit code: $SCRIPT_STATUS)"
+    log_message "Error in run_dimensionality_reduction.R (Exit code: $SCRIPT_STATUS)"
     exit 1
 fi
 
@@ -96,26 +93,16 @@ top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100
 log_message "=== Analysis Summary ==="
 log_message "Total Runtime: ${HOURS}h ${MINUTES}m ${SECONDS}s"
 log_message "Exit Status: $SCRIPT_STATUS"
-log_message "Output files saved in results/variable_genes/"
+log_message "Output files saved in results/"
 
 # Check if expected output files exist
 log_message "=== Output File Verification ==="
-if [ -f "data/urd_object_with_var_genes.rds" ]; then
-    log_message "✓ data/urd_object_with_var_genes.rds successfully created ($(stat -f %z "data/urd_object_with_var_genes.rds") bytes)"
-else
-    log_message "✗ data/urd_object_with_var_genes.rds not found"
-fi
+for file in "data/urd_object_with_dimred.rds" "data/urd_object_clean.rds" "results/parameter_summary.csv"; do
+    if [ -f "$file" ]; then
+        log_message "✓ $file successfully created ($(stat -f %z "$file") bytes)"
+    else
+        log_message "✗ $file not found"
+    fi
+done
 
-if [ -f "results/variable_genes/variable_genes_statistics.csv" ]; then
-    log_message "✓ Variable genes statistics file created"
-else
-    log_message "✗ Variable genes statistics file not found"
-fi
-
-if [ -f "results/plots/variable_genes/variable_genes_by_stage.pdf" ]; then
-    log_message "✓ Variable genes plots created"
-else
-    log_message "✗ Variable genes plots not found"
-fi
-
-log_message "Analysis completed" 
+log_message "Analysis completed"

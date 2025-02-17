@@ -21,8 +21,14 @@ dir.create("data", recursive = TRUE, showWarnings = FALSE)
 dir.create("results/variable_genes", recursive = TRUE, showWarnings = FALSE)
 dir.create("results/plots/variable_genes", recursive = TRUE, showWarnings = FALSE)
 
+# Check if URD object exists
+if (!file.exists("data/initial_urd_object.rds")) {
+  stop("URD object not found. Please run create_urd_object.R first.")
+}
+
 # load the URD object
-urd_object <- readRDS("data/initial_urd_object_20250210_1206.rds")
+message("Loading URD object...")
+urd_object <- readRDS("data/initial_urd_object.rds")
 
 # Get stages and print summary
 stages <- sort(unique(urd_object@group.ids$stage))
