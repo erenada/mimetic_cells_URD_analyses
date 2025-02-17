@@ -19,7 +19,7 @@ module load R/4.2.2
 
 # Run variable genes analysis
 echo "Starting variable genes analysis..."
-Rscript scripts/R/find_variable_genes.R
+Rscript scripts/R/02_find_variable_genes.R
 
 if [ $? -eq 0 ]; then
     echo "Variable genes analysis completed successfully."
