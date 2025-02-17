@@ -5,8 +5,15 @@ suppressPackageStartupMessages({
   library(RColorBrewer)
 })
 
+# Create all necessary directories
+dir.create("../test_data", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results/diffusion_map", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results/plots", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results/plots/diffusion_map", recursive = TRUE, showWarnings = FALSE)
+
 # Find the most recent test URD object with clean data
-test_files <- list.files("test_data", pattern = "test_urd_object_clean\\.rds$", full.names = TRUE)
+test_files <- list.files("../test_data", pattern = "test_urd_object_clean\\.rds$", full.names = TRUE)
 if (length(test_files) == 0) {
   stop("No clean test URD object found. Please run run_test_dimensionality_reduction.R first.")
 }
@@ -15,9 +22,6 @@ latest_test_file <- test_files[which.max(file.info(test_files)$mtime)]
 # Load the test URD object
 message(sprintf("Loading clean URD object from: %s", latest_test_file))
 urd_object <- readRDS(latest_test_file)
-
-# Create output directories
-dir.create("test_results/plots/diffusion_map", recursive = TRUE, showWarnings = FALSE)
 
 message("Starting diffusion map calculation...")
 
@@ -146,10 +150,10 @@ for(sigma in sigma_values) {
         
         # Save individual diffusion map
         saveRDS(urd_object@dm, 
-                file = sprintf("test_results/dm_sigma%.1f.rds", sigma))
+                file = sprintf("../test_results/diffusion_map/dm_sigma%.1f.rds", sigma))
         
         # Create visualization
-        png(sprintf("test_results/plots/diffusion_map/dm_sigma%.1f.png", sigma),
+        png(sprintf("../test_results/plots/diffusion_map/dm_sigma%.1f.png", sigma),
             width = 1200, height = 1200, res = 150)
         
         # Stage color palette (expanded for more stages)
@@ -212,7 +216,7 @@ if(length(dm_metrics) > 0) {
 }
 
 # Save the URD object with the final diffusion map
-saveRDS(urd_object, "test_data/test_urd_object_with_dm.rds")
+saveRDS(urd_object, "../test_data/test_urd_object_with_dm.rds")
 
 # Save parameter selection summary
 parameter_summary <- data.frame(
@@ -232,11 +236,13 @@ parameter_summary <- data.frame(
               sprintf("%.3f", max(quality_scores)))
 )
 write.csv(parameter_summary, 
-          "test_results/diffusion_map_parameters.csv", 
+          "../test_results/diffusion_map/parameters.csv", 
           row.names = FALSE, 
           quote = FALSE)
 
 message("\nDiffusion map analysis complete!")
-message("Results saved to 'test_data/test_urd_object_with_dm.rds'")
-message("Parameter summary saved to 'test_results/diffusion_map_parameters.csv'")
-message("Plots saved in 'test_results/plots/diffusion_map/'") 
+message("Results saved to:")
+message("- URD object: ../test_data/test_urd_object_with_dm.rds")
+message("- Parameter summary: ../test_results/diffusion_map/parameters.csv")
+message("- Individual maps: ../test_results/diffusion_map/")
+message("- Plots: ../test_results/plots/diffusion_map/") 

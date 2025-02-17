@@ -5,12 +5,13 @@
 #SBATCH -t 3-00:00:00
 #SBATCH -c 20
 #SBATCH --mem=64G
-#SBATCH -o logs/dimred_%j.out
-#SBATCH -e logs/dimred_%j.err
+#SBATCH -o ../../logs/dimred_%j.out
+#SBATCH -e ../../logs/dimred_%j.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=eren_ada@hms.harvard.edu
 
 # Create necessary directories
+cd ../..
 mkdir -p logs data results
 
 # Load required modules
@@ -24,7 +25,7 @@ fi
 
 # Run dimensionality reduction
 echo "Starting dimensionality reduction analysis..."
-Rscript run_dimensionality_reduction.R
+Rscript scripts/R/run_dimensionality_reduction.R
 
 if [ $? -eq 0 ]; then
     echo "Dimensionality reduction completed successfully."

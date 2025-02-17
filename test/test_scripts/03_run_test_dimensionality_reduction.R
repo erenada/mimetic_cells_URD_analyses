@@ -5,11 +5,23 @@ suppressPackageStartupMessages({
   library(RColorBrewer)
 })
 
-# Load the URD object with variable genes
-urd_object <- readRDS("data/initial_urd_object_20250210_1206.rds")
+# Find the most recent test URD object
+test_files <- list.files("../test_data", pattern = "test_urd_object_.*_with_var_genes\\.rds$", full.names = TRUE)
+if (length(test_files) == 0) {
+  stop("No test URD object with variable genes found. Please run run_test_linage_analysis.R first.")
+}
+latest_test_file <- test_files[which.max(file.info(test_files)$mtime)]
 
-# Create output directories
-dir.create("results/plots/dimensionality_reduction", recursive = TRUE, showWarnings = FALSE)
+# Load the test URD object
+message(sprintf("Loading test URD object from: %s", latest_test_file))
+urd_object <- readRDS(latest_test_file)
+
+# Create all necessary directories
+dir.create("../test_data", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results/dimensionality_reduction", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results/plots/dimensionality_reduction/pca", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results/plots/dimensionality_reduction/tsne", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
 
 message("Starting dimensionality reduction analysis...")
 
@@ -27,14 +39,12 @@ message(sprintf("Number of variable genes: %d", length(urd_object@var.genes)))
 # 1. PCA Parameters
 # -----------------------------
 message("\n1. PCA Analysis")
-# Try different mp.factor values
-mp_factors <- c(2, 3, 4)  # Testing only 2, 3, and 4
+# Try different mp.factor values (adjusted for test dataset)
+mp_factors <- c(2, 3, 4)  # Matching main script
 pca_results <- list()
 
-# Create directory for individual plots
-dir.create("results/plots/dimensionality_reduction/pca", recursive = TRUE, showWarnings = FALSE)
 for(mp in mp_factors) {
-  png(sprintf("results/plots/dimensionality_reduction/pca/pca_mp%.1f.png", mp),
+  png(sprintf("../test_results/plots/dimensionality_reduction/pca/pca_mp%.1f.png", mp),
       width = 800, height = 600, res = 100)
   urd_object <- calcPCA(urd_object, mp.factor = mp)
   pca_results[[as.character(mp)]] <- length(urd_object@pca.sig)
@@ -57,10 +67,9 @@ n_sig_pcs <- length(urd_object@pca.sig)
 # 2. tSNE Parameters
 # -----------------------------
 message("\n2. tSNE Analysis")
-# Calculate perplexity based on dataset size
-# Rule of thumb: perplexity should be between 5 and sqrt(n_cells)/3
+# Calculate perplexity based on dataset size (adjusted for smaller dataset)
 min_perp <- 5
-max_perp <- min(50, floor(sqrt(n_cells)/3))
+max_perp <- min(30, floor(sqrt(n_cells)/3))
 perplexity_values <- unique(round(c(
     min_perp,
     floor(max_perp/2),
@@ -69,94 +78,113 @@ perplexity_values <- unique(round(c(
 
 message(sprintf("Testing perplexity values: %s", paste(perplexity_values, collapse=", ")))
 
-# Create directory for tSNE plots
-dir.create("results/plots/dimensionality_reduction/tsne", recursive = TRUE, showWarnings = FALSE)
+# Store tSNE results
+tsne_results <- list()
+successful_perp <- c()  # Track successful perplexity values
 
 for(perp in perplexity_values) {
-  message(sprintf("Computing tSNE with perplexity %d...", perp))
+  message(sprintf("\nProcessing tSNE with perplexity %d...", perp))
   set.seed(123)
-  # Calculate tSNE
-  urd_object <- calcTsne(urd_object, perplexity = perp, theta = 0.5)
   
-  # Verify tSNE calculation completed
-  if(!is.null(urd_object@tsne.y)) {
-    tryCatch({
-      # Create the plot file
-      png_file <- sprintf("results/plots/dimensionality_reduction/tsne/tsne_perp%d.png", perp)
-      message(sprintf("Creating plot: %s", png_file))
-      
-      # Open PNG device
+  # Calculate tSNE with error handling
+  tsne_success <- tryCatch({
+    urd_object <- calcTsne(urd_object, perplexity = perp, theta = 0.5)
+    !is.null(urd_object@tsne.y)
+  }, error = function(e) {
+    message(sprintf("Error in tSNE calculation for perplexity %d: %s", perp, e$message))
+    FALSE
+  })
+  
+  if(tsne_success) {
+    message(sprintf("tSNE calculation successful for perplexity %d", perp))
+    
+    # Store tSNE results
+    tsne_results[[as.character(perp)]] <- list(
+      coords = urd_object@tsne.y,
+      perplexity = perp
+    )
+    
+    # Create plot with error handling
+    png_file <- sprintf("../test_results/plots/dimensionality_reduction/tsne/tsne_perp%d.png", perp)
+    plot_success <- tryCatch({
       png(png_file, width = 800, height = 600, res = 100)
-      
-      # Create plot
       plotDim(urd_object, 
               label = "stage",
               reduction.use = "tsne",
-              plot.title = "Stage Distribution",
+              plot.title = sprintf("Stage Distribution (perplexity=%d)", perp),
               legend = TRUE)
-      
-      # Explicitly close the device
       dev.off()
-      
-      # Force garbage collection
-      gc()
-      
-      # Verify file was created
-      if(file.exists(png_file)) {
-        message(sprintf("Successfully created plot for perplexity %d", perp))
-      } else {
-        message(sprintf("Warning: Failed to create plot for perplexity %d", perp))
-      }
+      TRUE
     }, error = function(e) {
+      if (dev.cur() > 1) dev.off()
       message(sprintf("Error creating plot for perplexity %d: %s", perp, e$message))
-      if (dev.cur() > 1) dev.off()  # Close device if open
+      FALSE
     })
+    
+    if(plot_success) {
+      message(sprintf("Successfully created plot: %s", png_file))
+      successful_perp <- c(successful_perp, perp)
+    } else {
+      message(sprintf("Failed to create plot for perplexity %d", perp))
+    }
+    
+    # Force garbage collection
+    gc()
   } else {
-    message(sprintf("Warning: tSNE calculation failed for perplexity %d", perp))
+    message(sprintf("tSNE calculation failed for perplexity %d", perp))
   }
 }
 
-# Store the last tSNE result (highest perplexity) for downstream analysis
-set.seed(123)
-urd_object <- calcTsne(urd_object, perplexity = max(perplexity_values), theta = 0.5)
+# Report final status
+message("\ntSNE Analysis Summary:")
+message(sprintf("Attempted perplexity values: %s", paste(perplexity_values, collapse=", ")))
+message(sprintf("Successful perplexity values: %s", paste(successful_perp, collapse=", ")))
 
-# Verify final tSNE calculation
-if(is.null(urd_object@tsne.y)) {
-  stop("Final tSNE calculation failed")
+# Use the highest successful perplexity result if available
+if(length(successful_perp) > 0) {
+  max_successful_perp <- max(successful_perp)
+  urd_object@tsne.y <- tsne_results[[as.character(max_successful_perp)]]$coords
+  message(sprintf("\nUsing final tSNE results from perplexity %d", max_successful_perp))
+} else {
+  stop("No successful tSNE calculations. Cannot proceed.")
 }
+
+# Force garbage collection
+gc()
 
 # 3. Clustering Parameters
 # -----------------------------
 message("\n3. Graph-based Clustering")
 
-# Calculate dataset complexity metrics
+# Calculate dataset complexity metrics (adjusted for smaller dataset)
 n_stages <- length(unique(urd_object@group.ids$stage))
 cells_per_stage <- table(urd_object@group.ids$stage)
 min_cells_per_stage <- min(cells_per_stage)
-complexity_factor <- n_stages / log2(n_cells)  # Higher for more complex datasets
+complexity_factor <- n_stages / log2(n_cells)
 
 message("\nDataset complexity metrics:")
 message(sprintf("Number of stages: %d", n_stages))
 message(sprintf("Minimum cells per stage: %d", min_cells_per_stage))
 message(sprintf("Complexity factor: %.2f", complexity_factor))
 
-# Calculate number of nearest neighbors based on dataset size AND complexity
-base_min_nn <- ceiling(sqrt(n_cells)/2)
-base_max_nn <- ceiling(sqrt(n_cells))
+# Calculate number of nearest neighbors (adjusted for smaller dataset)
+base_min_nn <- ceiling(sqrt(n_cells)/3)  # Reduced from /2 for smaller dataset
+base_max_nn <- ceiling(sqrt(n_cells)/2)  # Reduced from sqrt(n_cells) for smaller dataset
 
-# Adjust nn based on complexity:
+# Adjust nn based on complexity
 complexity_adjustment <- 1 / (1 + log2(complexity_factor))
-min_nn <- ceiling(base_min_nn * complexity_adjustment)
-max_nn <- ceiling(base_max_nn * complexity_adjustment)
+min_nn <- as.integer(ceiling(base_min_nn * complexity_adjustment))
+max_nn <- as.integer(ceiling(base_max_nn * complexity_adjustment))
 
 # Ensure minimum reasonable values
-min_nn <- max(min_nn, 10)  # Never go below 10 neighbors
-max_nn <- max(max_nn, min_nn * 1.5)  # Ensure reasonable range
+min_nn <- as.integer(max(min_nn, 5))  # Reduced from 10 for smaller dataset
+max_nn <- as.integer(max(max_nn, min_nn * 1.5))
 
-nn_values <- unique(round(c(min_nn, (min_nn + max_nn)/2, max_nn)))
+# Convert to integer for unique and round operations
+nn_values <- as.integer(unique(round(c(min_nn, (min_nn + max_nn)/2, max_nn))))
 
 message("\nNearest neighbor selection:")
-message(sprintf("Base range (from sqrt rule): %d-%d", base_min_nn, base_max_nn))
+message(sprintf("Base range (from sqrt rule): %d-%d", as.integer(base_min_nn), as.integer(base_max_nn)))
 message(sprintf("Complexity adjustment factor: %.2f", complexity_adjustment))
 message(sprintf("Final adjusted range: %d-%d", min_nn, max_nn))
 message(sprintf("Testing nearest neighbor values: %s", paste(nn_values, collapse=", ")))
@@ -189,7 +217,7 @@ gc()
 # 4. kNN and Outlier Detection
 # -----------------------------
 message("\n4. kNN and Outlier Detection")
-# Calculate optimal kNN value based on dataset size
+# Calculate optimal kNN value (adjusted for smaller dataset)
 if(n_cells < 1000) {
     nn_value <- ceiling(sqrt(n_cells))
 } else if(n_cells < 10000) {
@@ -216,7 +244,7 @@ message(sprintf("nn.2: %d (1/3 of nn_value)", round(nn_value/3)))
 message(sprintf("x.max: %.2f (95th percentile of distances)", x_max_value))
 
 # Create directory for outlier plots
-dir.create("results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
 
 # Function to calculate data-driven bounds
 calculate_data_driven_bounds <- function(dist_matrix, nn_value) {
@@ -248,7 +276,7 @@ calculate_data_driven_bounds <- function(dist_matrix, nn_value) {
     x_max <- quantile(d1, 0.95)
     
     # Create diagnostic plot
-    png("results/plots/dimensionality_reduction/outliers/data_driven_fit.png",
+    png("../test_results/plots/dimensionality_reduction/outliers/data_driven_fit.png",
         width = 800, height = 600, res = 100)
     plot(d1, dn, 
          xlab = "Distance to neighbor 1",
@@ -310,7 +338,7 @@ outliers_results <- list()
 for(i in seq_along(parameter_combinations)) {
     params <- parameter_combinations[[i]]
     
-    png(sprintf("results/plots/dimensionality_reduction/outliers/outliers_set%d.png", i),
+    png(sprintf("../test_results/plots/dimensionality_reduction/outliers/outliers_set%d.png", i),
         width = 800, height = 600, res = 100)
     outliers <- knnOutliers(urd_object, 
                           nn.1 = 1,
@@ -382,11 +410,11 @@ writeLines(c(
     "",
     "# Cell IDs identified as outliers:",
     best_outliers
-), "results/outlier_detection_parameters.txt")
+), "../test_results/outlier_detection_parameters.txt")
 
 # Also save just the outlier cell IDs in a separate file
 write.table(best_outliers, 
-           file = "results/outlier_cells.txt", 
+           file = "../test_results/outlier_cells.txt", 
            row.names = FALSE, 
            col.names = FALSE, 
            quote = FALSE)
@@ -408,8 +436,8 @@ for(nn in names(clustering_results)) {
 }
 
 # Save results
-saveRDS(urd_object, "data/urd_object_with_dimred.rds")
-saveRDS(urd_object_clean, "data/urd_object_clean.rds")
+saveRDS(urd_object, "../test_data/test_urd_object_with_dimred.rds")
+saveRDS(urd_object_clean, "../test_data/test_urd_object_clean.rds")
 
 # Save parameter choices
 parameter_summary <- data.frame(
@@ -427,9 +455,13 @@ parameter_summary <- data.frame(
              sprintf("%.1f%%", 100 * length(best_outliers) / n_cells))
 )
 write.csv(parameter_summary, 
-          "results/parameter_summary.csv", 
+          "../test_results/dimensionality_reduction/parameters.csv", 
           row.names = FALSE, 
           quote = FALSE)
 
-message("\nAnalysis complete!")
-message("Parameter summary saved to 'results/parameter_summary.csv'") 
+message("\nDimensionality reduction analysis complete!")
+message("Results saved to:")
+message("- URD object with dimensionality reduction: ../test_data/test_urd_object_with_dimred.rds")
+message("- Clean URD object: ../test_data/test_urd_object_clean.rds")
+message("- Parameter summary: ../test_results/dimensionality_reduction/parameters.csv")
+message("- Plots: ../test_results/plots/dimensionality_reduction/") 

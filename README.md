@@ -6,23 +6,61 @@ This repository contains R scripts and documentation for performing dimensionali
 
 ```
 .
-├── README.md
+├── README.md                    # Main documentation
 ├── methodology_info.md          # Detailed methodology documentation
-├── run_dimensionality_reduction.R  # Script for dimensionality reduction
-├── run_linage_analysis.R       # Script for lineage analysis
-├── create_urd_object.R         # Script for creating URD object
-├── data/                       # Directory for data (not tracked)
-└── results/                    # Directory for analysis results
-    ├── plots/
-    │   └── dimensionality_reduction/
-    └── variable_genes/
+├── scripts/                     # Main analysis scripts
+│   ├── R/                      # R analysis scripts
+│   │   ├── 01_create_urd_object.R
+│   │   ├── 02_find_variable_genes.R
+│   │   ├── 03_run_dimensionality_reduction.R
+│   │   ├── 04_run_diffusion_map.R
+│   │   └── 05_run_pseudotime.R
+│   └── submit/                 # O2 submission scripts
+│       ├── 01_submit_urd_object.sh
+│       ├── 02_submit_var_genes.sh
+│       ├── 03_submit_dimred.sh
+│       ├── 04_submit_diffmap.sh
+│       └── 05_submit_pseudotime.sh
+├── test/                       # Test-related files and scripts
+│   ├── test_scripts/          # Test R scripts
+│   │   ├── 01_create_test_urd_object.R
+│   │   ├── 02_run_test_variable_genes.R
+│   │   ├── 03_run_test_dimensionality_reduction.R
+│   │   ├── 04_run_test_diffusion_map.R
+│   │   ├── 05_run_test_pseudotime.R
+│   │   └── check_test_urd_object.R
+│   ├── test_data/             # Test dataset files
+│   └── test_results/          # Test analysis results
+├── data/                       # Main data directory (not tracked)
+├── results/                    # Main analysis results
+│   ├── plots/
+│   │   ├── dimensionality_reduction/
+│   │   ├── diffusion_map/
+│   │   ├── pseudotime/
+│   │   └── variable_genes/
+│   ├── dimensionality_reduction/
+│   ├── diffusion_map/
+│   ├── pseudotime/
+│   └── variable_genes/
+├── logs/                       # Log files directory
+└── resources/                  # Additional resources and documentation
 ```
 
 ## Scripts
 
-1. `create_urd_object.R`: Creates URD object from Seurat object
-2. `run_linage_analysis.R`: Performs lineage analysis and calculates variable genes
-3. `run_dimensionality_reduction.R`: Performs PCA, tSNE, and clustering analyses
+### Analysis Scripts (in `scripts/R/`)
+1. `01_create_urd_object.R`: Creates a URD object
+2. `02_find_variable_genes.R`: Identifies variable genes across stages
+3. `03_run_dimensionality_reduction.R`: Performs PCA, tSNE, and clustering analyses
+4. `04_run_diffusion_map.R`: Calculates diffusion map components
+5. `05_run_pseudotime.R`: Computes pseudotime ordering
+
+### Submission Scripts (in `scripts/submit/`)
+1. `01_submit_urd_object.sh`: Submits URD object creation
+2. `02_submit_var_genes.sh`: Submits variable genes analysis
+3. `03_submit_dimred.sh`: Submits dimensionality reduction
+4. `04_submit_diffmap.sh`: Submits diffusion map calculation
+5. `05_submit_pseudotime.sh`: Submits pseudotime analysis
 
 ## Documentation
 
@@ -34,30 +72,70 @@ This repository contains R scripts and documentation for performing dimensionali
 
 ## Requirements
 
-- R >= 4.0.0
+- R >= 4.2.2
 - URD package
 - Seurat package
 - RColorBrewer package
 
 ## Usage
 
-1. Place your input data in the `data/` directory
-2. Run the scripts in the following order:
-   ```R
-   source("create_urd_object.R")
-   source("run_linage_analysis.R")
-   source("run_dimensionality_reduction.R")
-   ```
+### Local Execution
+Run the scripts in the following order:
+```R
+source("scripts/R/01_create_urd_object.R")
+source("scripts/R/02_find_variable_genes.R")
+source("scripts/R/03_run_dimensionality_reduction.R")
+source("scripts/R/04_run_diffusion_map.R")
+source("scripts/R/05_run_pseudotime.R")
+```
+
+### O2 Cluster Execution
+Submit jobs in the following order:
+```bash
+cd scripts/submit
+sbatch 01_submit_urd_object.sh
+# Wait for completion, then:
+sbatch 02_submit_var_genes.sh
+# Wait for completion, then:
+sbatch 03_submit_dimred.sh
+# Wait for completion, then:
+sbatch 04_submit_diffmap.sh
+# Wait for completion, then:
+sbatch 05_submit_pseudotime.sh
+```
 
 ## Results
 
 The analysis generates:
-1. Dimensionality reduction plots
-2. Variable genes lists
-3. Parameter selection summaries
-4. Outlier detection results
+1. URD object creation
+2. Variable genes analysis
+   - Variable genes list
+   - Stage-specific statistics
+3. Dimensionality reduction
+   - PCA plots and statistics
+   - tSNE visualizations
+   - Clustering results
+4. Diffusion map analysis
+   - Diffusion components
+   - Quality metrics
+5. Pseudotime analysis
+   - Pseudotime ordering
+   - Stage progression plots
+   - Stability assessment
 
-Results are saved in the `results/` directory.
+Results are saved in the `results/` directory with the following structure:
+```
+results/
+├── plots/
+│   ├── dimensionality_reduction/
+│   ├── diffusion_map/
+│   └── pseudotime/
+├── variable_genes/
+├── dimensionality_reduction/
+├── diffusion_map/
+├── pseudotime/
+└── variable_genes/
+```
 
 ## References
 

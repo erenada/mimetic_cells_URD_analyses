@@ -5,12 +5,13 @@
 #SBATCH -t 3-00:00:00
 #SBATCH -c 20
 #SBATCH --mem=64G
-#SBATCH -o logs/pseudotime_%j.out
-#SBATCH -e logs/pseudotime_%j.err
+#SBATCH -o ../../logs/pseudotime_%j.out
+#SBATCH -e ../../logs/pseudotime_%j.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=eren_ada@hms.harvard.edu
 
 # Create necessary directories
+cd ../..
 mkdir -p logs data results
 
 # Load required modules
@@ -24,7 +25,7 @@ fi
 
 # Run pseudotime analysis
 echo "Starting pseudotime analysis..."
-Rscript run_pseudotime.R
+Rscript scripts/R/run_pseudotime.R
 
 if [ $? -eq 0 ]; then
     echo "Pseudotime analysis completed successfully."

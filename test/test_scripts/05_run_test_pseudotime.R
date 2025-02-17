@@ -5,19 +5,20 @@ suppressPackageStartupMessages({
   library(RColorBrewer)
 })
 
-# Find the most recent test URD object with diffusion map
-test_files <- list.files("test_data", pattern = "test_urd_object_with_dm\\.rds$", full.names = TRUE)
-if (length(test_files) == 0) {
-  stop("No URD object with diffusion map found. Please run run_test_diffusion_map.R first.")
+# Find the test URD object with diffusion map
+test_file <- "../test_data/test_urd_object_with_dm.rds"
+if (!file.exists(test_file)) {
+  stop("No test URD object with diffusion map found. Please run run_test_diffusion_map.R first.")
 }
-latest_test_file <- test_files[which.max(file.info(test_files)$mtime)]
 
-# Load the URD object
-message(sprintf("Loading URD object from: %s", latest_test_file))
-urd_object <- readRDS(latest_test_file)
+# Load the test URD object
+message(sprintf("Loading test URD object from: %s", test_file))
+urd_object <- readRDS(test_file)
 
-# Create output directories
-dir.create("test_results/plots/pseudotime", recursive = TRUE, showWarnings = FALSE)
+# Create all necessary directories
+dir.create("../test_data", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results/pseudotime", recursive = TRUE, showWarnings = FALSE)
+dir.create("../test_results/plots/pseudotime", recursive = TRUE, showWarnings = FALSE)
 
 message("Starting pseudotime calculation...")
 
@@ -131,25 +132,25 @@ urd_object <- floodPseudotimeProcess(
 
 # Check pseudotime stability
 message("\nChecking pseudotime stability...")
-png("test_results/plots/pseudotime/stability_plot.png",
+png("../test_results/plots/pseudotime/stability_plot.png",
     width = 800, height = 600, res = 100)
 pseudotimePlotStabilityOverall(urd_object)
 dev.off()
 
 # Save intermediate result
-saveRDS(urd_object, "test_data/test_urd_object_with_pseudotime.rds")
+saveRDS(urd_object, "../test_data/test_urd_object_with_pseudotime.rds")
 
 # Create visualization plots
 message("\nGenerating visualization plots...")
 
 # 1. Pseudotime distribution plot
-png("test_results/plots/pseudotime/pseudotime_distribution.png",
+png("../test_results/plots/pseudotime/pseudotime_distribution.png",
     width = 800, height = 600, res = 100)
 plotDists(urd_object, "pseudotime", "stage", plot.title="Pseudotime by stage")
 dev.off()
 
 # 2. Pseudotime on diffusion components
-png("test_results/plots/pseudotime/pseudotime_dm_components.png",
+png("../test_results/plots/pseudotime/pseudotime_dm_components.png",
     width = 1200, height = 1200, res = 150)
 plotDimArray(urd_object, 
             reduction.use = "dm", 
@@ -162,32 +163,42 @@ dev.off()
 
 # Save parameter summary
 parameter_summary <- data.frame(
-    parameter = c("Dataset size", 
-                 "Number of stages",
-                 "Root cells",
-                 "Minimum cells flooded",
-                 "Number of simulations",
-                 "Mean pseudotime",
-                 "Median pseudotime",
-                 "Pseudotime range"),
-    value = c(sprintf("%d cells", n_cells),
-              sprintf("%d", n_stages),
-              sprintf("%d (Immature stage)", length(root_cells)),
-              sprintf("%d", params$cells_per_waypoint),
-              "100",
-              sprintf("%.2f", mean(urd_object@pseudotime$pseudotime)),
-              sprintf("%.2f", median(urd_object@pseudotime$pseudotime)),
-              sprintf("%.2f - %.2f", min(urd_object@pseudotime$pseudotime), max(urd_object@pseudotime$pseudotime)))
+    parameter = c(
+        "Dataset size",
+        "Number of stages",
+        "Root stage",
+        "Root population size",
+        "Minimum cells flooded",
+        "Stage size variation",
+        "Number of simulations"
+    ),
+    value = c(
+        sprintf("%d cells", n_cells),
+        sprintf("%d", n_stages),
+        root_stage,
+        sprintf("%d cells", length(root_cells)),
+        sprintf("%d", params$cells_per_waypoint),
+        sprintf("%.2f", params$complexity_metrics$stage_size_variation),
+        "100"
+    )
 )
-write.csv(parameter_summary, 
-          "test_results/pseudotime_parameters.csv", 
-          row.names = FALSE, 
+write.csv(parameter_summary,
+          "../test_results/pseudotime/parameters.csv",
+          row.names = FALSE,
           quote = FALSE)
 
-message("\nPseudotime calculation complete!")
-message("Results saved to 'test_data/test_urd_object_with_pseudotime.rds'")
-message("Parameter summary saved to 'test_results/pseudotime_parameters.csv'")
-message("Plots saved in 'test_results/plots/pseudotime/'")
+# Save stage statistics
+stage_pt_means <- tapply(urd_object@pseudotime$pseudotime, urd_object@group.ids$stage, mean, na.rm=TRUE)
+write.csv(stage_pt_means,
+          "../test_results/pseudotime/stage_statistics.csv",
+          row.names = TRUE)
+
+message("\nPseudotime analysis complete!")
+message("Results saved to:")
+message("- URD object: ../test_data/test_urd_object_with_pseudotime.rds")
+message("- Parameter summary: ../test_results/pseudotime/parameters.csv")
+message("- Stage statistics: ../test_results/pseudotime/stage_statistics.csv")
+message("- Plots: ../test_results/plots/pseudotime/")
 
 # Print summary statistics
 message("\nPseudotime Summary Statistics:")

@@ -5,16 +5,15 @@ suppressPackageStartupMessages({
   library(RColorBrewer)
 })
 
-# Load the URD object with clean data
-latest_file <- list.files("data", pattern = "urd_object_clean\\.rds$", full.names = TRUE)
-if (length(latest_file) == 0) {
-  stop("No clean URD object found. Please run run_dimensionality_reduction.R first.")
-}
-latest_file <- latest_file[which.max(file.info(latest_file)$mtime)]
+# Create all necessary directories
+dir.create("data", recursive = TRUE, showWarnings = FALSE)
+dir.create("results", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/diffusion_map", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/plots", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/plots/diffusion_map", recursive = TRUE, showWarnings = FALSE)
 
-# Load the URD object
-message(sprintf("Loading clean URD object from: %s", latest_file))
-urd_object <- readRDS(latest_file)
+# Find the most recent URD object with clean data
+urd_object <- readRDS("data/urd_object_clean.rds")
 
 # Create output directories
 dir.create("results/plots/diffusion_map", recursive = TRUE, showWarnings = FALSE)
@@ -144,7 +143,7 @@ for(sigma in sigma_values) {
         
         # Save individual diffusion map
         saveRDS(urd_object@dm, 
-                file = sprintf("results/dm_sigma%.1f.rds", sigma))
+                file = sprintf("results/diffusion_map/dm_sigma%.1f.rds", sigma))
         
         # Create visualization
         png(sprintf("results/plots/diffusion_map/dm_sigma%.1f.png", sigma),
@@ -230,11 +229,13 @@ parameter_summary <- data.frame(
               sprintf("%.3f", max(quality_scores)))
 )
 write.csv(parameter_summary, 
-          "results/diffusion_map_parameters.csv", 
+          "results/diffusion_map/parameters.csv", 
           row.names = FALSE, 
           quote = FALSE)
 
 message("\nDiffusion map analysis complete!")
-message("Results saved to 'data/urd_object_with_dm.rds'")
-message("Parameter summary saved to 'results/diffusion_map_parameters.csv'")
-message("Plots saved in 'results/plots/diffusion_map/'") 
+message("Results saved to:")
+message("- URD object: data/urd_object_with_dm.rds")
+message("- Parameter summary: results/diffusion_map/parameters.csv")
+message("- Individual maps: results/diffusion_map/")
+message("- Plots: results/plots/diffusion_map/") 

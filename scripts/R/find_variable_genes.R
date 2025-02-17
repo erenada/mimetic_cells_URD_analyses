@@ -16,12 +16,13 @@ safe_pdf <- function(filename, expr) {
   )
 }
 
+# Create all necessary directories
+dir.create("data", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/variable_genes", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/plots/variable_genes", recursive = TRUE, showWarnings = FALSE)
+
 # load the URD object
 urd_object <- readRDS("data/initial_urd_object_20250210_1206.rds")
-
-# Create output directories if they don't exist
-dir.create("results/variable_genes", recursive = TRUE, showWarnings = FALSE)
-dir.create("results/plots", recursive = TRUE, showWarnings = FALSE)
 
 # Get stages and print summary
 stages <- sort(unique(urd_object@group.ids$stage))
@@ -121,5 +122,12 @@ write.csv(var_genes_stats,
           row.names = FALSE)
 
 # Save the updated URD object
-saveRDS(urd_object, "data/initial_urd_object_with_var_genes.rds")
-message("\nURD object updated with variable genes")
+saveRDS(urd_object, "data/urd_object_with_var_genes.rds")
+
+message("\nVariable genes analysis complete!")
+message("Results saved to:")
+message("- URD object: data/urd_object_with_var_genes.rds")
+message("- Combined variable genes: results/variable_genes/all_stages_combined_var_genes.txt")
+message("- Statistics: results/variable_genes/variable_genes_statistics.csv")
+message("- Stage-specific results: results/variable_genes/")
+message("- Plots: results/plots/variable_genes/")

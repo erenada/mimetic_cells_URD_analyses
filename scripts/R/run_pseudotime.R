@@ -5,19 +5,13 @@ suppressPackageStartupMessages({
   library(RColorBrewer)
 })
 
-# Load the URD object with diffusion map
-latest_file <- list.files("data", pattern = "urd_object_with_dm\\.rds$", full.names = TRUE)
-if (length(latest_file) == 0) {
-  stop("No URD object with diffusion map found. Please run run_diffusion_map.R first.")
-}
-latest_file <- latest_file[which.max(file.info(latest_file)$mtime)]
-
-# Load the URD object
-message(sprintf("Loading URD object from: %s", latest_file))
-urd_object <- readRDS(latest_file)
-
-# Create output directories
+# Create all necessary directories
+dir.create("data", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/pseudotime", recursive = TRUE, showWarnings = FALSE)
 dir.create("results/plots/pseudotime", recursive = TRUE, showWarnings = FALSE)
+
+# Load the URD object with diffusion map
+urd_object <- readRDS("data/urd_object_with_dm.rds")
 
 message("Starting pseudotime calculation...")
 
@@ -156,18 +150,18 @@ parameter_summary <- data.frame(
     )
 )
 write.csv(parameter_summary,
-          "results/pseudotime_parameters.csv",
+          "results/pseudotime/parameters.csv",
           row.names = FALSE,
           quote = FALSE)
 
 # Save stage statistics
 write.csv(stage_stats_df,
-          "results/pseudotime_stage_statistics.csv",
+          "results/pseudotime/stage_statistics.csv",
           row.names = TRUE)
 
-message("\nPseudotime calculation complete!")
+message("\nPseudotime analysis complete!")
 message("Results saved to:")
 message("- URD object: data/urd_object_with_pseudotime.rds")
-message("- Parameter summary: results/pseudotime_parameters.csv")
-message("- Stage statistics: results/pseudotime_stage_statistics.csv")
+message("- Parameter summary: results/pseudotime/parameters.csv")
+message("- Stage statistics: results/pseudotime/stage_statistics.csv")
 message("- Plots: results/plots/pseudotime/") 
