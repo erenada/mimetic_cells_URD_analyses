@@ -2,9 +2,9 @@
 
 #SBATCH -J URD_create                       # Job name
 #SBATCH -c 20                               # Request 20 cores
-#SBATCH -t 12:00:00                         # Runtime in D-HH:MM format
+#SBATCH -t 6:00:00                         # Runtime in D-HH:MM format
 #SBATCH -p short                            # Partition to run in
-#SBATCH --mem=64G                           # Memory total in MiB (for all cores)
+#SBATCH --mem=32G                           # Memory total in MiB (for all cores)
 #SBATCH -o logs/create_urd_%j.out           # File to which STDOUT will be written, %j is job ID
 #SBATCH -e logs/create_urd_%j.err           # File to which STDERR will be written, %j is job ID
 #SBATCH --mail-type=ALL                     # Type of email notification- ALL=BEGIN,END,FAIL,REQUEUE

@@ -2,7 +2,7 @@
 
 #SBATCH -J URD_var_genes                    # Job name
 #SBATCH -c 20                               # Request 20 cores
-#SBATCH -t 12:00:00                         # Runtime in D-HH:MM format
+#SBATCH -t 6:00:00                         # Runtime in D-HH:MM format
 #SBATCH -p short                            # Partition to run in
 #SBATCH --mem=64G                           # Memory total in MiB (for all cores)
 #SBATCH -o logs/var_genes_%j.out            # File to which STDOUT will be written, %j is job ID
