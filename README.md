@@ -6,8 +6,7 @@ This repository contains R scripts and documentation for performing dimensionali
 
 ```mermaid
 graph TD
-    Root["/"] --> Doc1[README.md]
-    Root --> Doc2[methodology_info.md]
+    Root["/"] --> Doc[Documentation]
     Root --> Scripts[scripts/]
     Root --> Test[test/]
     Root --> Data[data/]
@@ -18,84 +17,57 @@ graph TD
     %% Scripts structure
     Scripts --> R[R/]
     Scripts --> Submit[submit/]
-    
-    R --> R1[01_create_urd_object.R]
-    R --> R2[02_find_variable_genes.R]
-    R --> R3[03_run_dimensionality_reduction.R]
-    R --> R4[04_run_diffusion_map.R]
-    R --> R5[05_run_pseudotime.R]
-
-    Submit --> S1[01_submit_urd_object.sh]
-    Submit --> S2[02_submit_var_genes.sh]
-    Submit --> S3[03_submit_dimred.sh]
-    Submit --> S4[04_submit_diffmap.sh]
-    Submit --> S5[05_submit_pseudotime.sh]
 
     %% Test structure
     Test --> TestScripts[test_scripts/]
     Test --> TestData[test_data/]
     Test --> TestResults[test_results/]
 
-    TestScripts --> T1[01_create_test_urd_object.R]
-    TestScripts --> T2[02_run_test_variable_genes.R]
-    TestScripts --> T3[03_run_test_dimensionality_reduction.R]
-    TestScripts --> T4[04_run_test_diffusion_map.R]
-    TestScripts --> T5[05_run_test_pseudotime.R]
-    TestScripts --> T6[check_test_urd_object.R]
-
     %% Results structure
     Results --> Plots[plots/]
-    Results --> VarGenes[variable_genes/]
-    Results --> DimRed[dimensionality_reduction/]
-    Results --> DiffMap[diffusion_map/]
-    Results --> Pseudo[pseudotime/]
+    Results --> Analysis[analysis/]
 
     Plots --> P1[dimensionality_reduction/]
     Plots --> P2[diffusion_map/]
     Plots --> P3[pseudotime/]
     Plots --> P4[variable_genes/]
 
+    Analysis --> A1[dimensionality_reduction/]
+    Analysis --> A2[diffusion_map/]
+    Analysis --> A3[pseudotime/]
+    Analysis --> A4[variable_genes/]
+
     %% Styling
     classDef directory fill:#f9f,stroke:#333,stroke-width:2px
-    classDef script fill:#bbf,stroke:#333,stroke-width:1px
-    classDef doc fill:#fff,stroke:#333,stroke-width:1px
-    
-    class Scripts,R,Submit,Test,TestScripts,TestData,TestResults,Data,Results,Logs,Resources,Plots,VarGenes,DimRed,DiffMap,Pseudo,P1,P2,P3,P4 directory
-    class R1,R2,R3,R4,R5,S1,S2,S3,S4,S5,T1,T2,T3,T4,T5,T6 script
-    class Doc1,Doc2 doc
+    class Scripts,R,Submit,Test,TestScripts,TestData,TestResults,Data,Results,Logs,Resources,Plots,Analysis,P1,P2,P3,P4,A1,A2,A3,A4 directory
 ```
 
 ### Directory Overview
 
-- 📁 **scripts/** - Main analysis scripts
-  - 📁 **R/** - R analysis scripts
-    - 📜 `01_create_urd_object.R` - Creates URD object
-    - 📜 `02_find_variable_genes.R` - Identifies variable genes
-    - 📜 `03_run_dimensionality_reduction.R` - PCA and tSNE
-    - 📜 `04_run_diffusion_map.R` - Diffusion maps
-    - 📜 `05_run_pseudotime.R` - Pseudotime calculation
-  - 📁 **submit/** - O2 cluster submission scripts
-    - 📜 `01_submit_urd_object.sh` → Submits URD creation
-    - 📜 `02_submit_var_genes.sh` → Submits gene analysis
-    - 📜 `03_submit_dimred.sh` → Submits dimension reduction
-    - 📜 `04_submit_diffmap.sh` → Submits diffusion mapping
-    - 📜 `05_submit_pseudotime.sh` → Submits pseudotime calc
+**scripts/**
+- `R/` - Analysis scripts (numbered 01-05)
+- `submit/` - O2 cluster submission scripts (numbered 01-05)
 
-- 📁 **test/** - Testing framework
-  - 📁 **test_scripts/** - Test implementation
-  - 📁 **test_data/** - Test datasets
-  - 📁 **test_results/** - Test outputs
+**test/**
+- `test_scripts/` - Test implementation scripts
+- `test_data/` - Test datasets
+- `test_results/` - Test outputs
 
-- 📁 **results/** - Analysis outputs
-  - 📁 **plots/** - Visualizations
-  - 📁 **variable_genes/** - Gene analysis results
-  - 📁 **dimensionality_reduction/** - PCA/tSNE results
-  - 📁 **diffusion_map/** - Diffusion mapping results
-  - 📁 **pseudotime/** - Trajectory results
+**results/**
+- `plots/` - All visualization outputs
+  - Dimensionality reduction plots
+  - Diffusion map visualizations
+  - Pseudotime trajectories
+  - Variable genes plots
+- `analysis/` - Analysis results
+  - Dimensionality reduction statistics
+  - Diffusion map components
+  - Pseudotime calculations
+  - Variable genes data
 
-- 📁 **data/** - Input data (not tracked)
-- 📁 **logs/** - Execution logs
-- 📁 **resources/** - Additional documentation
+**data/** - Input data (not tracked)
+**logs/** - Execution logs
+**resources/** - Additional documentation
 
 ## Scripts
 
