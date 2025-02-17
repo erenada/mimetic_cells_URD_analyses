@@ -101,9 +101,12 @@ log_message "Output files saved in results/variable_genes/"
 # Check if expected output files exist
 log_message "=== Output File Verification ==="
 if [ -f "data/urd_object_with_var_genes.rds" ]; then
-    log_message "✓ data/urd_object_with_var_genes.rds successfully created ($(stat -f %z "data/urd_object_with_var_genes.rds") bytes)"
+    FILE_SIZE=$(stat --format=%s "data/urd_object_with_var_genes.rds")
+    FILE_SIZE_MB=$(echo "scale=2; $FILE_SIZE/1024/1024" | bc)
+    log_message "✓ data/urd_object_with_var_genes.rds successfully created ($FILE_SIZE_MB MB)"
 else
     log_message "✗ data/urd_object_with_var_genes.rds not found"
+    exit 1
 fi
 
 if [ -f "results/variable_genes/variable_genes_statistics.csv" ]; then
@@ -118,4 +121,4 @@ else
     log_message "✗ Variable genes plots not found"
 fi
 
-log_message "Analysis completed" 
+log_message "Analysis completed successfully" 

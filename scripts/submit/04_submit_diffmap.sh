@@ -101,9 +101,12 @@ log_message "Output files saved in results/diffusion_map/"
 # Check if expected output files exist
 log_message "=== Output File Verification ==="
 if [ -f "data/urd_object_with_dm.rds" ]; then
-    log_message "✓ data/urd_object_with_dm.rds successfully created ($(stat -f %z "data/urd_object_with_dm.rds") bytes)"
+    FILE_SIZE=$(stat --format=%s "data/urd_object_with_dm.rds")
+    FILE_SIZE_MB=$(echo "scale=2; $FILE_SIZE/1024/1024" | bc)
+    log_message "✓ data/urd_object_with_dm.rds successfully created ($FILE_SIZE_MB MB)"
 else
     log_message "✗ data/urd_object_with_dm.rds not found"
+    exit 1
 fi
 
 if [ -f "results/diffusion_map/parameters.csv" ]; then
@@ -119,4 +122,4 @@ else
     log_message "✗ Diffusion map plots not found or directory empty"
 fi
 
-log_message "Analysis completed" 
+log_message "Analysis completed successfully" 

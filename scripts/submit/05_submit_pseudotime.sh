@@ -101,9 +101,12 @@ log_message "Output files saved in results/pseudotime/"
 # Check if expected output files exist
 log_message "=== Output File Verification ==="
 if [ -f "data/urd_object_with_pseudotime.rds" ]; then
-    log_message "✓ data/urd_object_with_pseudotime.rds successfully created ($(stat -f %z "data/urd_object_with_pseudotime.rds") bytes)"
+    FILE_SIZE=$(stat --format=%s "data/urd_object_with_pseudotime.rds")
+    FILE_SIZE_MB=$(echo "scale=2; $FILE_SIZE/1024/1024" | bc)
+    log_message "✓ data/urd_object_with_pseudotime.rds successfully created ($FILE_SIZE_MB MB)"
 else
     log_message "✗ data/urd_object_with_pseudotime.rds not found"
+    exit 1
 fi
 
 if [ -f "results/pseudotime/parameters.csv" ]; then
@@ -127,4 +130,4 @@ for plot in "stage_pseudotime_distribution.png" "pseudotime_diffusion_components
     fi
 done
 
-log_message "Analysis completed" 
+log_message "Analysis completed successfully" 

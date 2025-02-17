@@ -92,9 +92,12 @@ log_message "Output files saved in data/"
 # Check if expected output files exist
 log_message "=== Output File Verification ==="
 if [ -f "data/initial_urd_object.rds" ]; then
-    log_message "✓ data/initial_urd_object.rds successfully created ($(stat -f %z "data/initial_urd_object.rds") bytes)"
+    FILE_SIZE=$(stat --format=%s "data/initial_urd_object.rds")
+    FILE_SIZE_MB=$(echo "scale=2; $FILE_SIZE/1024/1024" | bc)
+    log_message "✓ data/initial_urd_object.rds successfully created ($FILE_SIZE_MB MB)"
 else
     log_message "✗ data/initial_urd_object.rds not found"
+    exit 1
 fi
 
-log_message "Analysis completed" 
+log_message "Analysis completed successfully" 

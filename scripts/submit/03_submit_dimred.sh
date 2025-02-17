@@ -101,15 +101,21 @@ log_message "Output files saved in results/dimensionality_reduction/"
 # Check if expected output files exist
 log_message "=== Output File Verification ==="
 if [ -f "data/urd_object_with_dimred.rds" ]; then
-    log_message "✓ data/urd_object_with_dimred.rds successfully created ($(stat -f %z "data/urd_object_with_dimred.rds") bytes)"
+    FILE_SIZE=$(stat --format=%s "data/urd_object_with_dimred.rds")
+    FILE_SIZE_MB=$(echo "scale=2; $FILE_SIZE/1024/1024" | bc)
+    log_message "✓ data/urd_object_with_dimred.rds successfully created ($FILE_SIZE_MB MB)"
 else
     log_message "✗ data/urd_object_with_dimred.rds not found"
+    exit 1
 fi
 
 if [ -f "data/urd_object_clean.rds" ]; then
-    log_message "✓ data/urd_object_clean.rds successfully created ($(stat -f %z "data/urd_object_clean.rds") bytes)"
+    FILE_SIZE=$(stat --format=%s "data/urd_object_clean.rds")
+    FILE_SIZE_MB=$(echo "scale=2; $FILE_SIZE/1024/1024" | bc)
+    log_message "✓ data/urd_object_clean.rds successfully created ($FILE_SIZE_MB MB)"
 else
     log_message "✗ data/urd_object_clean.rds not found"
+    exit 1
 fi
 
 if [ -f "results/dimensionality_reduction/parameters.csv" ]; then
@@ -127,4 +133,4 @@ for plot_type in "pca" "tsne" "outliers"; do
     fi
 done
 
-log_message "Analysis completed" 
+log_message "Analysis completed successfully" 

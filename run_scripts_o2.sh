@@ -19,6 +19,20 @@ get_memory_usage() {
     free -h | awk 'NR==2{printf "Memory Usage: %s/%s (%.2f%%)\n", $3,$2,$3*100/$2 }'
 }
 
+# Function to check file creation and size
+check_file() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        FILE_SIZE=$(stat --format=%s "$file")
+        FILE_SIZE_MB=$(echo "scale=2; $FILE_SIZE/1024/1024" | bc)
+        log_message "✓ $file successfully created ($FILE_SIZE_MB MB)"
+        return 0
+    else
+        log_message "✗ $file not found"
+        return 1
+    fi
+}
+
 # Create necessary directories
 mkdir -p logs results/plots/dimensionality_reduction
 
@@ -98,11 +112,7 @@ log_message "Output files saved in results/"
 # Check if expected output files exist
 log_message "=== Output File Verification ==="
 for file in "data/urd_object_with_dimred.rds" "data/urd_object_clean.rds" "results/parameter_summary.csv"; do
-    if [ -f "$file" ]; then
-        log_message "✓ $file successfully created ($(stat -f %z "$file") bytes)"
-    else
-        log_message "✗ $file not found"
-    fi
+    check_file "$file"
 done
 
 log_message "Analysis completed"
