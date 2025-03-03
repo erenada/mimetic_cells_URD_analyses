@@ -1,0 +1,278 @@
+Loading URD object...
+Processing stages: Aire-stage, ASCL3+_ionocyte, Cochlear_hair, CUX2+_neuro, Cycling, DRGX+_sensory_neuro, Early_muscle, FEZF2+_neuro, HMX2+_ionocyte, Immature, Keratinocyte, Late_muscle, lncRNA-enriched_muscle, NKX6-2+_neuro, SHOX2+_neuro, Transitional, Tuft
+Total number of stages: 17
+
+Processing stages and calculating variable genes...
+
+Processing stage: Aire-stage
+Before filtering:
+  - Number of cells: 343
+  - Median counts per cell: 6395.0
+  - Median genes per cell: 2868.0
+  - Min counts per cell: 1713.0
+  - Min genes per cell: 1045.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 343 (after filtering)
+Variable genes found: 1697
+
+Processing stage: ASCL3+_ionocyte
+Before filtering:
+  - Number of cells: 3918
+  - Median counts per cell: 6592.5
+  - Median genes per cell: 3096.5
+  - Min counts per cell: 1359.0
+  - Min genes per cell: 1001.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 3918 (after filtering)
+Variable genes found: 1536
+
+Processing stage: Cochlear_hair
+Before filtering:
+  - Number of cells: 1631
+  - Median counts per cell: 9123.0
+  - Median genes per cell: 3944.0
+  - Min counts per cell: 1544.0
+  - Min genes per cell: 1019.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 1631 (after filtering)
+Variable genes found: 1051
+
+Processing stage: CUX2+_neuro
+Before filtering:
+  - Number of cells: 294
+  - Median counts per cell: 9326.0
+  - Median genes per cell: 3964.5
+  - Min counts per cell: 1674.0
+  - Min genes per cell: 1086.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 294 (after filtering)
+Variable genes found: 1570
+
+Processing stage: Cycling
+Before filtering:
+  - Number of cells: 112
+  - Median counts per cell: 11663.0
+  - Median genes per cell: 4153.5
+  - Min counts per cell: 2241.0
+  - Min genes per cell: 1462.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 112 (after filtering)
+Variable genes found: 2751
+
+Processing stage: DRGX+_sensory_neuro
+Before filtering:
+  - Number of cells: 213
+  - Median counts per cell: 6648.0
+  - Median genes per cell: 3151.0
+  - Min counts per cell: 1792.0
+  - Min genes per cell: 1188.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 213 (after filtering)
+Variable genes found: 1384
+
+Processing stage: Early_muscle
+Before filtering:
+  - Number of cells: 6799
+  - Median counts per cell: 11657.0
+  - Median genes per cell: 4247.0
+  - Min counts per cell: 1310.0
+  - Min genes per cell: 1004.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 6799 (after filtering)
+Variable genes found: 1655
+
+Processing stage: FEZF2+_neuro
+Before filtering:
+  - Number of cells: 288
+  - Median counts per cell: 6619.0
+  - Median genes per cell: 3083.5
+  - Min counts per cell: 1815.0
+  - Min genes per cell: 1167.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 288 (after filtering)
+Variable genes found: 2052
+
+Processing stage: HMX2+_ionocyte
+Before filtering:
+  - Number of cells: 917
+  - Median counts per cell: 8254.0
+  - Median genes per cell: 3539.0
+  - Min counts per cell: 1631.0
+  - Min genes per cell: 1145.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 917 (after filtering)
+Variable genes found: 1458
+
+Processing stage: Immature
+Before filtering:
+  - Number of cells: 3071
+  - Median counts per cell: 4250.0
+  - Median genes per cell: 2232.0
+  - Min counts per cell: 1326.0
+  - Min genes per cell: 1005.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 3071 (after filtering)
+Variable genes found: 940
+
+Processing stage: Keratinocyte
+Before filtering:
+  - Number of cells: 185
+  - Median counts per cell: 7706.0
+  - Median genes per cell: 3283.0
+  - Min counts per cell: 1469.0
+  - Min genes per cell: 1017.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 185 (after filtering)
+Variable genes found: 2031
+
+Processing stage: Late_muscle
+Before filtering:
+  - Number of cells: 2067
+  - Median counts per cell: 14247.0
+  - Median genes per cell: 4448.0
+  - Min counts per cell: 1598.0
+  - Min genes per cell: 1025.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 2067 (after filtering)
+Variable genes found: 2142
+
+Processing stage: lncRNA-enriched_muscle
+Before filtering:
+  - Number of cells: 535
+  - Median counts per cell: 6810.0
+  - Median genes per cell: 3090.0
+  - Min counts per cell: 1391.0
+  - Min genes per cell: 1023.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 535 (after filtering)
+Variable genes found: 2163
+
+Processing stage: NKX6-2+_neuro
+Before filtering:
+  - Number of cells: 1749
+  - Median counts per cell: 6698.0
+  - Median genes per cell: 3210.0
+  - Min counts per cell: 1434.0
+  - Min genes per cell: 1011.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 1749 (after filtering)
+Variable genes found: 1413
+
+Processing stage: SHOX2+_neuro
+Before filtering:
+  - Number of cells: 2589
+  - Median counts per cell: 6438.0
+  - Median genes per cell: 3044.0
+  - Min counts per cell: 1344.0
+  - Min genes per cell: 1002.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 2589 (after filtering)
+Variable genes found: 1115
+
+Processing stage: Transitional
+Before filtering:
+  - Number of cells: 3956
+  - Median counts per cell: 6409.0
+  - Median genes per cell: 3056.5
+  - Min counts per cell: 1335.0
+  - Min genes per cell: 1004.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 3956 (after filtering)
+Variable genes found: 1624
+
+Processing stage: Tuft
+Before filtering:
+  - Number of cells: 643
+  - Median counts per cell: 9501.0
+  - Median genes per cell: 3764.0
+  - Min counts per cell: 1502.0
+  - Min genes per cell: 1013.0
+
+No filtering needed - all cells already meet the minimum criteria:
+  - All cells have >= 100 counts
+  - All cells have >= 50 genes
+Cells: 643 (after filtering)
+Variable genes found: 1954
+There were 28 warnings (use warnings() to see them)
+
+Analysis Summary:
+Total variable genes: 6488
+
+Variable genes per stage:
+Aire-stage: 1697
+ASCL3+_ionocyte: 1536
+Cochlear_hair: 1051
+CUX2+_neuro: 1570
+Cycling: 2751
+DRGX+_sensory_neuro: 1384
+Early_muscle: 1655
+FEZF2+_neuro: 2052
+HMX2+_ionocyte: 1458
+Immature: 940
+Keratinocyte: 2031
+Late_muscle: 2142
+lncRNA-enriched_muscle: 2163
+NKX6-2+_neuro: 1413
+SHOX2+_neuro: 1115
+Transitional: 1624
+Tuft: 1954
+
+Variable genes analysis complete!
+Results saved to:
+- URD object: data/urd_object_with_var_genes.rds
+- Combined variable genes: results/variable_genes/all_stages_combined_var_genes.txt
+- Statistics: results/stats/cell_filtering_statistics.csv
+- Stage-specific results: results/variable_genes/
+- Plots: results/plots/variable_genes/
+
+real	5m19.726s
+user	4m48.525s
+sys	0m27.198s

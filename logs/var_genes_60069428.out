@@ -1,0 +1,35 @@
+[2025-02-16 21:47:59] === Job Information ===
+[2025-02-16 21:47:59] Job ID: 60069428
+[2025-02-16 21:47:59] Node: compute-h-17-51
+[2025-02-16 21:47:59] Number of cores: 20
+[2025-02-16 21:47:59] Working directory: /n/groups/immdiv-bioinfo/eren/mimetic_cells_URD_analyses
+[2025-02-16 21:47:59] === System Information ===
+[2025-02-16 21:47:59] CPU Info:
+Intel(R) Xeon(R) CPU E5-2683 v4 @ 2.10GHz
+[2025-02-16 21:47:59] Total Memory:
+755G
+[2025-02-16 21:47:59] Operating System:
+Linux compute-h-17-51.o2.rc.hms.harvard.edu 3.10.0-1160.119.1.el7.tuxcare.els13.x86_64 #1 SMP Fri Nov 22 06:29:45 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+[2025-02-16 21:47:59] === Loading Modules ===
+[2025-02-16 21:48:02] Loaded gcc/9.2.0 and R/4.4.0
+[2025-02-16 21:48:02] === Checking Input Files ===
+[2025-02-16 21:48:02] Input URD object found
+[2025-02-16 21:48:02] === Initial Resource Usage ===
+Memory Usage: 20G/755G (2.65%)
+[2025-02-16 21:48:02] CPU Usage:
+22%
+[2025-02-16 21:48:03] === Starting Analysis ===
+[2025-02-16 21:48:03] Running variable genes analysis...
+[2025-02-16 21:53:23] === Final Resource Usage ===
+Memory Usage: 18G/755G (2.38%)
+[2025-02-16 21:53:23] CPU Usage:
+16.3%
+[2025-02-16 21:53:23] === Analysis Summary ===
+[2025-02-16 21:53:23] Total Runtime: 0h 5m 24s
+[2025-02-16 21:53:23] Exit Status: 0
+[2025-02-16 21:53:23] Output files saved in results/variable_genes/
+[2025-02-16 21:53:23] === Output File Verification ===
+[2025-02-16 21:53:23] ✓ data/urd_object_with_var_genes.rds successfully created (488.93 MB)
+[2025-02-16 21:53:23] ✓ Variable genes statistics file created
+[2025-02-16 21:53:23] ✗ Variable genes plots not found
+[2025-02-16 21:53:23] Analysis completed successfully

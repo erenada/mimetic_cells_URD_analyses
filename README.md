@@ -25,21 +25,19 @@ graph TD
 
     %% Results structure
     Results --> Plots[plots/]
-    Results --> Analysis[analysis/]
+    Results --> VariableGenes[variable_genes/]
+    Results --> Stats[stats/]
+    Results --> DimRed[dimensionality_reduction/]
+    Results --> DiffMap[diffusion_map/]
 
-    Plots --> P1[dimensionality_reduction/]
-    Plots --> P2[diffusion_map/]
-    Plots --> P3[pseudotime/]
-    Plots --> P4[variable_genes/]
-
-    Analysis --> A1[dimensionality_reduction/]
-    Analysis --> A2[diffusion_map/]
-    Analysis --> A3[pseudotime/]
-    Analysis --> A4[variable_genes/]
+    Plots --> PCA[pca/]
+    Plots --> TSNE[tsne/]
+    Plots --> Outliers[outliers/]
+    Plots --> DiffMapPlots[diffusion_map/]
 
     %% Styling
     classDef directory fill:#f9f,stroke:#333,stroke-width:2px
-    class Scripts,R,Submit,Test,TestScripts,TestData,TestResults,Data,Results,Logs,Resources,Plots,Analysis,P1,P2,P3,P4,A1,A2,A3,A4 directory
+    class Scripts,R,Submit,Test,TestScripts,TestData,TestResults,Data,Results,Logs,Resources,Plots,VariableGenes,Stats,DimRed,DiffMap,PCA,TSNE,Outliers,DiffMapPlots directory
 ```
 
 ### Directory Overview
@@ -55,15 +53,18 @@ graph TD
 
 **results/**
 - `plots/` - All visualization outputs
-  - Dimensionality reduction plots
-  - Diffusion map visualizations
-  - Pseudotime trajectories
-  - Variable genes plots
-- `analysis/` - Analysis results
-  - Dimensionality reduction statistics
-  - Diffusion map components
-  - Pseudotime calculations
-  - Variable genes data
+  - `pca/` - PCA analysis plots
+  - `tsne/` - tSNE visualizations
+  - `outliers/` - Outlier detection plots
+  - `diffusion_map/` - Diffusion map visualizations
+- `dimensionality_reduction/` - Dimensionality reduction results
+  - Parameters and statistics
+  - Outlier detection results
+- `diffusion_map/` - Diffusion map analysis
+  - Individual diffusion maps
+  - Quality metrics and summaries
+- `variable_genes/` - Variable genes analysis
+- `stats/` - Statistical summaries
 
 **data/** - Input data (not tracked)
 **logs/** - Execution logs
@@ -150,14 +151,14 @@ Results are saved in the `results/` directory with the following structure:
 ```
 results/
 ├── plots/
-│   ├── dimensionality_reduction/
-│   ├── diffusion_map/
-│   └── pseudotime/
-├── variable_genes/
+│   ├── pca/
+│   ├── tsne/
+│   ├── outliers/
+│   └── diffusion_map/
 ├── dimensionality_reduction/
 ├── diffusion_map/
-├── pseudotime/
-└── variable_genes/
+├── variable_genes/
+└── stats/
 ```
 
 ## References

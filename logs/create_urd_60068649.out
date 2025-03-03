@@ -1,0 +1,51 @@
+[2025-02-16 21:15:52] === Job Information ===
+[2025-02-16 21:15:52] Job ID: 60068649
+[2025-02-16 21:15:52] Node: compute-h-17-51
+[2025-02-16 21:15:52] Number of cores: 20
+[2025-02-16 21:15:52] Working directory: /n/groups/immdiv-bioinfo/eren/mimetic_cells_URD_analyses
+[2025-02-16 21:15:52] === System Information ===
+[2025-02-16 21:15:52] CPU Info:
+Intel(R) Xeon(R) CPU E5-2683 v4 @ 2.10GHz
+[2025-02-16 21:15:52] Total Memory:
+755G
+[2025-02-16 21:15:52] Operating System:
+Linux compute-h-17-51.o2.rc.hms.harvard.edu 3.10.0-1160.119.1.el7.tuxcare.els13.x86_64 #1 SMP Fri Nov 22 06:29:45 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+[2025-02-16 21:15:52] === Loading Modules ===
+[2025-02-16 21:15:55] Loaded gcc/9.2.0 and R/4.4.0
+[2025-02-16 21:15:55] === Initial Resource Usage ===
+Memory Usage: 30G/755G (3.97%)
+[2025-02-16 21:15:55] CPU Usage:
+31.8%
+[2025-02-16 21:15:55] === Starting Analysis ===
+[2025-02-16 21:15:55] Running URD object creation...
+
+            Aire-stage        ASCL3+_ionocyte          Cochlear_hair 
+                   343                   3918                   1631 
+           CUX2+_neuro                Cycling    DRGX+_sensory_neuro 
+                   294                    112                    213 
+          Early_muscle           FEZF2+_neuro         HMX2+_ionocyte 
+                  6799                    288                    917 
+              Immature           Keratinocyte            Late_muscle 
+                  3071                    185                   2067 
+lncRNA-enriched_muscle          NKX6-2+_neuro           SHOX2+_neuro 
+                   535                   1749                   2589 
+          Transitional                   Tuft 
+                  3956                    643 
+            used   (Mb) gc trigger    (Mb)   max used    (Mb)
+Ncells   8739996  466.8   15659912   836.4   11718177   625.9
+Vcells 715438547 5458.4 2935467214 22395.9 3272481674 24967.1
+[2025-02-16 21:40:21] === Final Resource Usage ===
+Memory Usage: 22G/755G (2.91%)
+[2025-02-16 21:40:21] CPU Usage:
+28.8%
+[2025-02-16 21:40:21] === Analysis Summary ===
+[2025-02-16 21:40:21] Total Runtime: 0h 24m 29s
+[2025-02-16 21:40:21] Exit Status: 0
+[2025-02-16 21:40:21] Output files saved in data/
+[2025-02-16 21:40:21] === Output File Verification ===
+[2025-02-16 21:40:21] ✓ data/initial_urd_object.rds successfully created (  File: "data/initial_urd_object.rds"
+    ID: 0        Namelen: 255     Type: nfs
+Block size: 1048576    Fundamental block size: 1048576
+Blocks: Total: 37059837952 Free: 7131698315 Available: 7131698315
+Inodes: Total: 162068480000 Free: 145432539367 bytes)
+[2025-02-16 21:40:21] Analysis completed

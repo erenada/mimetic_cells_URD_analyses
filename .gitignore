@@ -37,3 +37,6 @@ Rplots.pdf
 # Generated plots and results
 results/plots/**/*.pdf
 results/plots/**/*.png 
+
+# Old results
+results_old/ 

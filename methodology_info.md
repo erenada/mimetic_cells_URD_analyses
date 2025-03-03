@@ -477,10 +477,67 @@ Pseudotime calculation in URD uses flood simulations to determine the developmen
 ## Output and Validation
 
 The analysis produces:
-1. Parameter selection plots for each method
-2. Comprehensive parameter summary (parameter_summary.csv)
-3. Detailed progress messages
-4. Visual comparisons for parameter choices
+1. Dimensionality Reduction Results
+   - Parameters summary (`dimensionality_reduction/parameters.csv`)
+   - Outlier detection results:
+     - Outlier cells list (`dimensionality_reduction/outlier_cells.txt`)
+     - Outlier detection parameters (`dimensionality_reduction/outlier_detection_parameters.txt`)
+     - Stage-wise outlier statistics (`dimensionality_reduction/outlier_stage_statistics.csv`)
+
+2. Visualization Outputs (`plots/dimensionality_reduction/`)
+   - PCA plots (`pca/`)
+     - Different mp.factor values
+     - Significant PC determination
+   - tSNE plots (`tsne/`)
+     - Different perplexity values
+     - Final visualization
+   - Outlier detection plots (`outliers/`)
+     - Data-driven boundary fitting
+     - Outlier identification plots
+
+3. Quality Control Metrics
+   - Parameter selection rationale
+   - Stage-wise statistics
+   - Outlier distribution analysis
+
+## Diffusion Map Analysis Outputs
+
+### Results Structure
+1. Individual Diffusion Maps
+   - Format: `dm_sigma{value}_score{score}.rds`
+   - Contains:
+     - Diffusion map object
+     - Quality metrics
+     - Parameter values
+
+2. Summary Files
+   - `all_diffusion_maps_summary.csv`
+     - Sigma values
+     - Quality scores
+     - File references
+   - `parameters.csv`
+     - Dataset characteristics
+     - Selected parameters
+     - Final choices
+
+3. Visualizations
+   - Format: `dm_sigma{value}.png`
+   - Shows:
+     - First 18 diffusion components
+     - Stage coloring
+     - Quality assessment
+
+### Quality Metrics
+- Overall quality score
+- Individual component metrics:
+  - Variance explained
+  - Entropy
+  - Stage separation
+
+### Parameter Selection
+- Data-driven sigma range
+- kNN value determination
+- Complexity factor consideration
 
 ## Software and Tools
 

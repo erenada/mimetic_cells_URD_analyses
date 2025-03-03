@@ -2,14 +2,13 @@
 
 #SBATCH -J URD_diffmap                      # Job name
 #SBATCH -c 20                               # Request 20 cores
-#SBATCH -t 3-00:00:00                       # Runtime in D-HH:MM format (3 days)
+#SBATCH -t 4-00:00:00                       # Runtime in D-HH:MM format (3 days)
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=64G                           # Memory total in MiB (for all cores)
 #SBATCH -o logs/diffmap_%j.out              # File to which STDOUT will be written, %j is job ID
 #SBATCH -e logs/diffmap_%j.err              # File to which STDERR will be written, %j is job ID
 #SBATCH --mail-type=ALL                     # Type of email notification- ALL=BEGIN,END,FAIL,REQUEUE
 #SBATCH --mail-user=eren_ada@hms.harvard.edu
-#SBATCH --job-name=URD_diffmap             # Job name
 
 # Function to log messages with timestamps
 log_message() {
@@ -26,6 +25,13 @@ mkdir -p logs data results/diffusion_map results/plots/diffusion_map
 
 # Change to the working directory
 cd /n/groups/immdiv-bioinfo/eren/mimetic_cells_URD_analyses
+
+# Check if R script exists
+if [ ! -f "scripts/R/04_run_diffusion_map.R" ]; then
+    log_message "Error: R script not found at scripts/R/04_run_diffusion_map.R"
+    exit 1
+fi
+log_message "Found R script: scripts/R/04_run_diffusion_map.R"
 
 # Record start time
 START_TIME=$(date +%s)
@@ -66,6 +72,21 @@ log_message "=== Initial Resource Usage ==="
 get_memory_usage
 log_message "CPU Usage:"
 top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}'
+
+# Add periodic memory monitoring
+monitor_resources() {
+    while true; do
+        log_message "=== Resource Monitor ==="
+        get_memory_usage
+        log_message "CPU Usage:"
+        top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}'
+        sleep 300  # Check every 5 minutes
+    done
+}
+
+# Start resource monitoring in background before running R script
+monitor_resources &
+MONITOR_PID=$!
 
 # Run diffusion map analysis
 log_message "=== Starting Analysis ==="
@@ -122,4 +143,7 @@ else
     log_message "✗ Diffusion map plots not found or directory empty"
 fi
 
-log_message "Analysis completed successfully" 
+log_message "Analysis completed successfully"
+
+# After R script completion, stop the monitoring
+kill $MONITOR_PID 

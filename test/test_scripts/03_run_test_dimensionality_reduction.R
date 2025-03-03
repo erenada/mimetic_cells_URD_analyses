@@ -226,7 +226,7 @@ message(sprintf("nn.2: %d (1/3 of nn_value)", round(nn_value/3)))
 message(sprintf("x.max: %.2f (95th percentile of distances)", x_max_value))
 
 # Create directory for outlier plots
-dir.create("/test/test_results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
+dir.create("./test/test_results/plots/dimensionality_reduction/outliers", recursive = TRUE, showWarnings = FALSE)
 
 # Function to calculate data-driven bounds
 calculate_data_driven_bounds <- function(dist_matrix, nn_value) {
@@ -392,11 +392,11 @@ writeLines(c(
     "",
     "# Cell IDs identified as outliers:",
     best_outliers
-), "/test/test_results/outlier_detection_parameters.txt")
+), "./test/test_results/outlier_detection_parameters.txt")
 
 # Also save just the outlier cell IDs in a separate file
 write.table(best_outliers, 
-           file = "/test/test_results/outlier_cells.txt", 
+           file = "./test/test_results/outlier_cells.txt", 
            row.names = FALSE, 
            col.names = FALSE, 
            quote = FALSE)
@@ -418,8 +418,8 @@ for(nn in names(clustering_results)) {
 }
 
 # Save results
-saveRDS(urd_object, "./test_data/test_urd_object_with_dimred.rds")
-saveRDS(urd_object_clean, "./test_data/test_urd_object_clean.rds")
+saveRDS(urd_object, "./test/test_data/test_urd_object_with_dimred.rds")
+saveRDS(urd_object_clean, "./test/test_data/test_urd_object_clean.rds")
 
 # Save parameter choices
 parameter_summary <- data.frame(
@@ -437,13 +437,13 @@ parameter_summary <- data.frame(
              sprintf("%.1f%%", 100 * length(best_outliers) / n_cells))
 )
 write.csv(parameter_summary, 
-          "/test/test_results/dimensionality_reduction/parameters.csv", 
+          "./test/test_results/dimensionality_reduction/parameters.csv", 
           row.names = FALSE, 
           quote = FALSE)
 
 message("\nDimensionality reduction analysis complete!")
 message("Results saved to:")
-message("- URD object with dimensionality reduction: ../test_data/test_urd_object_with_dimred.rds")
-message("- Clean URD object: ./test_data/test_urd_object_clean.rds")
-message("- Parameter summary: /test/test_results/dimensionality_reduction/parameters.csv")
-message("- Plots: /test/test_results/plots/dimensionality_reduction/") 
+message("- URD object with dimensionality reduction: ./test/test_data/test_urd_object_with_dimred.rds")
+message("- Clean URD object: ./test/test_data/test_urd_object_clean.rds")
+message("- Parameter summary: ./test/test_results/dimensionality_reduction/parameters.csv")
+message("- Plots: ./test/test_results/plots/dimensionality_reduction/") 

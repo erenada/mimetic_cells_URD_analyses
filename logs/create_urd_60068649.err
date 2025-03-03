@@ -1,0 +1,43 @@
+Loading Seurat object...
+Number of cells: 29310
+Number of genes: 31238
+Extracting counts matrix and metadata...
+Warning message:
+The `slot` argument of `GetAssayData()` is deprecated as of SeuratObject 5.0.0.
+ℹ Please use the `layer` argument instead. 
+Saving intermediate files...
+Metadata saved.
+Warning message:
+In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 6.8 GiB
+Counts matrix saved.
+Creating URD object...
+2025-02-16 21:31:51.623612: Filtering cells by number of genes.
+2025-02-16 21:32:28.007609: Filtering genes by number of cells.
+2025-02-16 21:33:16.025085: Filtering genes by number of counts across entire data.
+2025-02-16 21:33:58.924869: Filtering genes by maximum observed expression.
+2025-02-16 21:34:44.211283: Creating URD object.
+2025-02-16 21:34:46.457703: Determining normalization factors.
+2025-02-16 21:35:12.892137: Normalizing and log-transforming the data.
+'as(<dgeMatrix>, "dgCMatrix")' is deprecated.
+Use 'as(., "CsparseMatrix")' instead.
+See help("Deprecated") and help("Matrix-deprecated").
+2025-02-16 21:37:11.870822: Finishing setup of the URD object.
+2025-02-16 21:37:36.995167: All done.
+There were 16 warnings (use warnings() to see them)
+Processing stage labels...
+Stage summary:
+Saving URD object...
+URD object saved successfully.
+Verifying saved URD object...
+URD object verified successfully.
+
+URD object creation complete!
+Number of cells in URD object: 29310
+Number of genes in URD object: 28527
+Number of stages: 17
+
+real	24m25.815s
+user	22m26.538s
+sys	1m41.219s
+stat: cannot read file system information for ‘%z’: No such file or directory

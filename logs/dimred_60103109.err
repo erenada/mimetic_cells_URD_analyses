@@ -1,0 +1,131 @@
+Starting dimensionality reduction analysis...
+
+Dataset characteristics:
+Number of cells: 29310
+Number of genes: 28527
+Number of stages: 17
+Number of variable genes: 6488
+
+Dataset complexity metrics:
+Number of stages: 17
+Minimum cells per stage: 112
+Complexity factor: 7.80
+
+1. PCA Analysis
+Warning messages:
+1: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+2: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+3: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+4: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+5: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+6: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+7: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+8: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+9: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+
+PCA significant components with different mp.factor values:
+mp.factor = 2: 106 significant PCs
+mp.factor = 3: 74 significant PCs
+mp.factor = 4: 56 significant PCs
+Warning messages:
+1: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+2: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+3: In asMethod(object) :
+  sparse->dense coercion: allocating vector of size 1.4 GiB
+
+2. tSNE Analysis
+Testing perplexity values: 5, 25, 50
+
+Processing tSNE with perplexity 5...
+tSNE calculation successful for perplexity 5
+
+Processing tSNE with perplexity 25...
+tSNE calculation successful for perplexity 25
+
+Processing tSNE with perplexity 50...
+tSNE calculation successful for perplexity 50
+
+tSNE Analysis Summary:
+Successful perplexity values: 5, 25, 50
+
+Using final tSNE results from perplexity 50
+
+3. Graph-based Clustering
+
+Nearest neighbor selection:
+Base range (from sqrt rule): 86-172
+Complexity adjustment factor: 0.25
+Final adjusted range: 22-44
+Testing nearest neighbor values: 22, 33, 44
+
+Calculating clustering with 22 nearest neighbors...
+Successfully calculated clusters for nn=22
+
+Calculating clustering with 33 nearest neighbors...
+Successfully calculated clusters for nn=33
+
+Calculating clustering with 44 nearest neighbors...
+Successfully calculated clusters for nn=44
+
+4. kNN and Outlier Detection
+Warning messages:
+1: In .M2v(x) : sparse->dense coercion: allocating vector of size 1.4 GiB
+2: In .M2v(x) : sparse->dense coercion: allocating vector of size 1.4 GiB
+
+Data-driven bound statistics:
+Median d20/d1 ratio (base slope): 1.039
+Upper bound slope: 1.143
+Lower bound slope: 0.935
+x.max (98th percentile): 78.39
+
+Parameter Set 1 (URD-style bounds (10% spread, 98th percentile x.max)):
+Slope (red): 1.143, Intercept (red): 0.000
+Slope (blue): 0.935, Intercept (blue): 0.000
+Outliers: 743 (2.53%)
+
+Selected Parameter Set 1 (URD-style bounds (10% spread, 98th percentile x.max)) as it gives reasonable outlier percentage.
+
+Analyzing outlier distribution across stages:
+
+Outlier distribution by stage:
+Aire-stage: 13 outliers out of 343 cells (3.79%)
+ASCL3+_ionocyte: 66 outliers out of 3918 cells (1.68%)
+Cochlear_hair: 2 outliers out of 1631 cells (0.12%)
+CUX2+_neuro: 3 outliers out of 294 cells (1.02%)
+Cycling: 29 outliers out of 112 cells (25.89%)
+DRGX+_sensory_neuro: 2 outliers out of 213 cells (0.94%)
+Early_muscle: 97 outliers out of 6799 cells (1.43%)
+FEZF2+_neuro: 10 outliers out of 288 cells (3.47%)
+HMX2+_ionocyte: 4 outliers out of 917 cells (0.44%)
+Immature: 235 outliers out of 3071 cells (7.65%)
+Keratinocyte: 11 outliers out of 185 cells (5.95%)
+Late_muscle: 23 outliers out of 2067 cells (1.11%)
+lncRNA-enriched_muscle: 18 outliers out of 535 cells (3.36%)
+NKX6-2+_neuro: 30 outliers out of 1749 cells (1.72%)
+SHOX2+_neuro: 22 outliers out of 2589 cells (0.85%)
+Transitional: 151 outliers out of 3956 cells (3.82%)
+Tuft: 27 outliers out of 643 cells (4.20%)
+
+Identified 743 outliers (2.5%) using URD-style bounds (10% spread, 98th percentile x.max)
+
+Dimensionality reduction analysis complete!
+Results saved to:
+- URD object with dimensionality reduction: data/urd_object_with_dimred.rds
+- Clean URD object: data/urd_object_clean.rds
+- Parameter summary: results/dimensionality_reduction/parameters.csv
+- Plots: results/plots/dimensionality_reduction/
+
+real	150m30.538s
+user	254m9.663s
+sys	30m37.080s
