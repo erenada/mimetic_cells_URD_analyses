@@ -1,0 +1,61 @@
+# R specific
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# URD folder
+URD/
+
+# Data folder contents but keep the folder structure
+data/*
+!data/.gitkeep
+
+# OS specific
+.DS_Store
+.Thumbs.db
+
+# IDE specific
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# R environment specific
+renv/
+.Rprofile
+
+# Temporary files
+*.log
+*.tmp
+*~ 
+
+# Test related
+test_data/
+test_results/
+Rplots.pdf
+
+# All results (but keep directory structure)
+results/**/*
+!results/.gitkeep
+!results/*/.gitkeep
+
+# All logs (but keep directory structure)
+logs/**/*
+!logs/.gitkeep
+
+# Old results
+results_old/
+
+# Resources folder
+resources/
+
+# All R data files (anywhere in the project)
+**/*.rds
+**/*.RDS
+**/results/**/*.rds
+**/test/**/*.rds
+**/data/**/*.rds
+**/resources/**/*.rds
+
+# Large diffusion map files
+results/diffusion_map/*.rds 
