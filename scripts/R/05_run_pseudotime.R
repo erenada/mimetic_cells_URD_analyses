@@ -59,13 +59,19 @@ message(sprintf("Number of root cells: %d", length(root_cells)))
 # Calculate pseudotime with error handling
 message("\nCalculating pseudotime from root cells...")
 tryCatch({
-    urd_object <- floodPseudotime(
+    # Run flood simulations and save results
+    flood_results <- floodPseudotime(
         object = urd_object,
         root.cells = root_cells,  # Now using cell names instead of indices
-        n = 500,  # Increased number of random walks for better stability
+        n = 100,  # Number of random walks as per URD documentation
         minimum.cells.flooded = 2,  # Set to 2 as per URD documentation
         verbose = TRUE
     )
+    
+    # Save the flood results
+    saveRDS(flood_results, "results/pseudotime/flood_results.rds")
+    message("Flood results saved to: results/pseudotime/flood_results.rds")
+    
 }, error = function(e) {
     stop(sprintf("Error in floodPseudotime: %s", e$message))
 })
@@ -73,8 +79,10 @@ tryCatch({
 # Process flood results
 message("\nProcessing flood results...")
 tryCatch({
+    # Process the floods to generate pseudotime
     urd_object <- floodPseudotimeProcess(
         object = urd_object,
+        floods = flood_results,  # Use the saved flood results
         floods.name = "pseudotime",
         max.frac.NA = 0.4,     # Default value from documentation
         pseudotime.fun = mean,  # Default and only validated function
