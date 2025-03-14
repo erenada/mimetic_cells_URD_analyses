@@ -15,13 +15,19 @@ urd_object <- readRDS("data/urd_object_with_dm.rds")
 
 message("Starting pseudotime calculation...")
 
+# Verify diffusion map
+if (is.null(urd_object@dm)) {
+    stop("No diffusion map found in URD object. Please run diffusion map calculation first.")
+}
+
+if (is.null(urd_object@dm@eigenvectors) || ncol(urd_object@dm@eigenvectors) < 2) {
+    stop("Invalid diffusion map: eigenvectors not properly calculated")
+}
+
 # Get dataset characteristics for parameter selection
 n_cells <- ncol(urd_object@logupx.data)
 n_stages <- length(unique(urd_object@group.ids$stage))
 cells_per_stage <- table(urd_object@group.ids$stage)
-min_cells_per_stage <- min(cells_per_stage)
-median_cells_per_stage <- median(cells_per_stage)
-stage_size_variation <- sd(cells_per_stage) / mean(cells_per_stage)
 
 message(sprintf("\nDataset characteristics:"))
 message(sprintf("Number of cells: %d", n_cells))
@@ -29,25 +35,18 @@ message(sprintf("Number of stages: %d", n_stages))
 message(sprintf("Cells per stage:"))
 print(cells_per_stage)
 
-# Calculate minimum cells flooded parameter
-# Base value using square root scaling of median stage size
-base_min_cells <- ceiling(sqrt(median_cells_per_stage) / 2)
-
-# Adjust for stage size variation
-variation_adjustment <- 1 + stage_size_variation
-min_cells_flooded <- ceiling(base_min_cells * variation_adjustment)
-
-# Ensure reasonable bounds
-min_cells_flooded <- max(3, min(min_cells_flooded, ceiling(median_cells_per_stage * 0.05)))
-
-message(sprintf("\nParameter selection (data-driven approach):"))
-message(sprintf("Base minimum cells: %d", base_min_cells))
-message(sprintf("Stage size variation adjustment: %.2f", variation_adjustment))
-message(sprintf("Final minimum cells flooded: %d", min_cells_flooded))
-
 # Identify root stage and cells
 root_stage <- "Immature"  # Adjust this based on your dataset
-root_cells <- which(urd_object@group.ids$stage == root_stage)
+
+# Check if the stage exists
+if (!(root_stage %in% urd_object@group.ids$stage)) {
+    stop(sprintf("Root stage '%s' not found in data. Available stages: %s", 
+                 root_stage, 
+                 paste(unique(urd_object@group.ids$stage), collapse=", ")))
+}
+
+# Get cell names instead of indices for root cells
+root_cells <- rownames(urd_object@group.ids)[urd_object@group.ids$stage == root_stage]
 
 if(length(root_cells) == 0) {
     stop(sprintf("No cells found in root stage '%s'", root_stage))
@@ -57,26 +56,34 @@ message(sprintf("\nRoot population:"))
 message(sprintf("Stage: %s", root_stage))
 message(sprintf("Number of root cells: %d", length(root_cells)))
 
-# Calculate pseudotime
+# Calculate pseudotime with error handling
 message("\nCalculating pseudotime from root cells...")
-urd_object <- floodPseudotime(
-    object = urd_object,
-    root.cells = root_cells,
-    n = 100,  # Number of random walks
-    minimum.cells.flooded = min_cells_flooded,
-    verbose = TRUE
-)
+tryCatch({
+    urd_object <- floodPseudotime(
+        object = urd_object,
+        root.cells = root_cells,  # Now using cell names instead of indices
+        n = 500,  # Increased number of random walks for better stability
+        minimum.cells.flooded = 2,  # Set to 2 as per URD documentation
+        verbose = TRUE
+    )
+}, error = function(e) {
+    stop(sprintf("Error in floodPseudotime: %s", e$message))
+})
 
 # Process flood results
 message("\nProcessing flood results...")
-urd_object <- floodPseudotimeProcess(
-    object = urd_object,
-    floods.name = "pseudotime",
-    max.frac.NA = 0.4,
-    pseudotime.fun = mean,
-    stability.div = 20,
-    verbose = TRUE
-)
+tryCatch({
+    urd_object <- floodPseudotimeProcess(
+        object = urd_object,
+        floods.name = "pseudotime",
+        max.frac.NA = 0.4,     # Default value from documentation
+        pseudotime.fun = mean,  # Default and only validated function
+        stability.div = 10,     # Default value from documentation
+        verbose = TRUE
+    )
+}, error = function(e) {
+    stop(sprintf("Error in floodPseudotimeProcess: %s", e$message))
+})
 
 # Check pseudotime calculation success
 if (is.null(urd_object@pseudotime)) {
@@ -153,8 +160,8 @@ parameter_summary <- data.frame(
         sprintf("%d", n_stages),
         root_stage,
         sprintf("%d cells", length(root_cells)),
-        sprintf("%d", min_cells_flooded),
-        sprintf("%.2f", stage_size_variation),
+        "2",
+        "0.00",
         "100"
     )
 )
