@@ -86,8 +86,7 @@ tryCatch({
         floods.name = "pseudotime",
         max.frac.NA = 0.4,     # Default value from documentation
         pseudotime.fun = mean,  # Default and only validated function
-        stability.div = 10,     # Default value from documentation
-        verbose = TRUE
+        stability.div = 10     # Default value from documentation
     )
 }, error = function(e) {
     stop(sprintf("Error in floodPseudotimeProcess: %s", e$message))
