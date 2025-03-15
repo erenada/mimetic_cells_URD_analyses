@@ -92,6 +92,9 @@ tryCatch({
     stop(sprintf("Error in floodPseudotimeProcess: %s", e$message))
 })
 
+# Save the URD object with pseudotime
+saveRDS(urd_object, "data/urd_object_with_pseudotime.rds")
+
 # Check pseudotime calculation success
 if (is.null(urd_object@pseudotime)) {
     stop("Pseudotime calculation failed - no pseudotime values found in URD object")
@@ -147,9 +150,6 @@ dev.off()
 
 # Save results
 message("\nSaving results...")
-
-# Save the URD object with pseudotime
-saveRDS(urd_object, "data/urd_object_with_pseudotime.rds")
 
 # Save parameter summary
 parameter_summary <- data.frame(
